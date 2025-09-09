@@ -43,7 +43,7 @@ var tokenPatterns = []struct {
 var newlinePattern = regexp.MustCompile(`^\n`)
 var blankPattern = regexp.MustCompile(`^[ \t]`)
 
-func (t *Token) PrintTokenInfo() {
+func (t *Token) PrintInfo() {
 	fmt.Printf("type:%d line:%d col:%d id:%d\n",
 			t.Type, t.Line, t.Column, t.TableId)
 }
