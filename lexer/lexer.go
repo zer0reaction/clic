@@ -58,7 +58,7 @@ func (l *Lexer) LoadString(data string) {
 
 func (l *Lexer) readToken() (*Token, error) {
 	if l.readInd == l.writeInd {
-		return nil, errors.New("failed to read token")
+		return nil, errors.New("readToken: ring buffer overflow")
 	}
 
 	t := &l.rbuffer[l.readInd]
@@ -69,7 +69,7 @@ func (l *Lexer) readToken() (*Token, error) {
 
 func (l *Lexer) writeToken(t Token) error {
 	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
-		return errors.New("failed to write token")
+		return errors.New("writeToken: ring buffer underflow")
 	}
 
 	l.rbuffer[l.writeInd] = t
@@ -127,7 +127,7 @@ func (l *Lexer) cacheToken() error {
 	}
 
 	if !matched {
-		return fmt.Errorf("no tokens matched at line %d, column %d",
+		return fmt.Errorf("cacheToken: no tokens matched at line %d, column %d",
 					l.line, l.column)
 	}
 

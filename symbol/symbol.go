@@ -20,7 +20,7 @@ func CreateSymbol() uint {
 
 func SetSymbolData(id int, data string) error {
 	if id >= len(table) || id == SymbolIdNone {
-		return errors.New("id outside bounds")
+		return errors.New("SetSymbolData: invalid id")
 	}
 
 	table[id].data = data
