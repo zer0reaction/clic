@@ -1,10 +1,10 @@
 package lexer
 
 import (
-	"fmt"
 	"errors"
-	"regexp"
+	"fmt"
 	"github.com/zer0reaction/lisp-go/symbol"
+	"regexp"
 )
 
 const lexerRbufferSize uint = 16
@@ -14,6 +14,8 @@ type TokenType uint
 const (
 	TokenRbrOpen TokenType = iota
 	TokenRbrClose
+	TokenPlus
+	TokenInteger
 	tokenCount
 )
 
@@ -36,16 +38,19 @@ type Lexer struct {
 var tokenPatterns = []struct {
 	tokenType TokenType
 	pattern   *regexp.Regexp
+	needsData bool
 }{
-	{TokenRbrOpen, regexp.MustCompile(`^\(`)},
-	{TokenRbrClose, regexp.MustCompile(`^\)`)},
+	{TokenRbrOpen, regexp.MustCompile(`^\(`), false},
+	{TokenRbrClose, regexp.MustCompile(`^\)`), false},
+	{TokenPlus, regexp.MustCompile(`^\+`), false},
+	{TokenInteger, regexp.MustCompile(`^-?[1-9]+[0-9]*`), true},
 }
 var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (t *Token) PrintInfo() {
 	fmt.Printf("type:%d line:%d col:%d id:%d\n",
-			t.Type, t.Line, t.Column, t.TableId)
+		t.Type, t.Line, t.Column, t.TableId)
 }
 
 func (l *Lexer) DebugCacheToken() error {
@@ -66,7 +71,7 @@ func (l *Lexer) LoadString(data string) {
 
 func (l *Lexer) readToken() (*Token, error) {
 	if l.readInd == l.writeInd {
-		return nil, errors.New("readToken: ring buffer overflow")
+		return nil, errors.New("readToken: ring buffer underflow")
 	}
 
 	t := &l.rbuffer[l.readInd]
@@ -77,7 +82,7 @@ func (l *Lexer) readToken() (*Token, error) {
 
 func (l *Lexer) writeToken(t Token) error {
 	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
-		return errors.New("writeToken: ring buffer underflow")
+		return errors.New("writeToken: ring buffer overflow")
 	}
 
 	l.rbuffer[l.writeInd] = t
@@ -122,7 +127,16 @@ func (l *Lexer) cacheToken() error {
 			Type:    p.tokenType,
 			Line:    l.line,
 			Column:  l.column,
-			TableId: symbol.SymbolIdNone,
+			TableId: symbol.IdNone,
+		}
+
+		if p.needsData {
+			id := symbol.Create()
+			err := symbol.SetData(id, match)
+			if err != nil {
+				return err
+			}
+			t.TableId = id
 		}
 
 		err := l.writeToken(t)
@@ -137,28 +151,27 @@ func (l *Lexer) cacheToken() error {
 
 	if !matched {
 		return fmt.Errorf("cacheToken: no tokens matched at line %d, column %d",
-					l.line, l.column)
+			l.line, l.column)
 	}
-
 
 	return nil
 }
 
 func (l *Lexer) GetCachedCount() uint {
 	if l.writeInd >= l.readInd {
-		return l.writeInd - l.readInd;
+		return l.writeInd - l.readInd
 	} else {
-		return lexerRbufferSize - l.readInd + l.writeInd;
+		return lexerRbufferSize - l.readInd + l.writeInd
 	}
 }
 
 func (l *Lexer) PeekToken(offset uint) (*Token, error) {
-	count := l.GetCachedCount()
-
-	if offset >= count {
-		return nil, fmt.Errorf("PeekToken: offset (%d) exceeds count (%d)",
-					offset, count)
+	for l.GetCachedCount() <= offset {
+		err := l.cacheToken()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &l.rbuffer[l.readInd + offset], nil
+	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }

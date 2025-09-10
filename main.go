@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/lexer"
+	"github.com/zer0reaction/lisp-go/symbol"
 	"log"
 )
 
@@ -10,28 +11,48 @@ func main() {
 	var lexer lexer.Lexer
 
 	log.SetFlags(0)
+	lexer.LoadString("(((((((((((((((123 -345((((((((((((((((((((((((((((((((((")
 
-	lexer.LoadString("\n  ))  )\t)\n)   \n")
+	for i := uint(0); i < 5; i++ {
+		fmt.Println("----------------------------------------")
 
-	lexer.DebugCacheToken()
-	lexer.DebugCacheToken()
-	lexer.DebugCacheToken()
-	lexer.DebugCacheToken()
-	lexer.DebugCacheToken()
-
-	for i := uint(0); i < lexer.GetCachedCount(); i++ {
 		tp, err := lexer.PeekToken(i)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		tp.PrintInfo()
+
+		if tp.TableId != symbol.IdNone {
+			err := symbol.PrintInfo(tp.TableId)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 
-	fmt.Println(lexer.GetCachedCount())
+	_, _ = lexer.DebugReadToken()
+	_, _ = lexer.DebugReadToken()
+	_, _ = lexer.DebugReadToken()
+	_, _ = lexer.DebugReadToken()
+	_, _ = lexer.DebugReadToken()
 
-	tp, err := lexer.PeekToken(5)
-	if err != nil {
-		log.Fatal(err)
+	for i := uint(0); ; i++ {
+		fmt.Println("----------------------------------------")
+
+		tp, err := lexer.PeekToken(i)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tp.PrintInfo()
+
+		if tp.TableId != symbol.IdNone {
+			err := symbol.PrintInfo(tp.TableId)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
-	tp.PrintInfo()
+
 }
