@@ -40,8 +40,8 @@ var tokenPatterns = []struct {
 	{TokenRbrOpen, regexp.MustCompile(`^\(`)},
 	{TokenRbrClose, regexp.MustCompile(`^\)`)},
 }
-var newlinePattern = regexp.MustCompile(`^\n`)
-var blankPattern = regexp.MustCompile(`^[ \t]`)
+var newlinePattern = regexp.MustCompile(`^\n+`)
+var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (t *Token) PrintInfo() {
 	fmt.Printf("type:%d line:%d col:%d id:%d\n",
@@ -83,15 +83,15 @@ func (l *Lexer) cacheToken() error {
 		blankFound := false
 		newlineFound := false
 
-		if blankPattern.FindString(l.data) != "" {
-			l.column += 1
-			l.data = l.data[1:]
+		if match := blankPattern.FindString(l.data); match != "" {
+			l.column += uint(len(match))
+			l.data = l.data[len(match):]
 			blankFound = true
 		}
-		if newlinePattern.FindString(l.data) != "" {
-			l.line += 1
+		if match := newlinePattern.FindString(l.data); match != "" {
+			l.line += uint(len(match))
 			l.column = 1
-			l.data = l.data[1:]
+			l.data = l.data[len(match):]
 			newlineFound = true
 		}
 
@@ -124,6 +124,7 @@ func (l *Lexer) cacheToken() error {
 
 		l.data = l.data[len(match):]
 		l.column += uint(len(match))
+		break
 	}
 
 	if !matched {
@@ -133,4 +134,12 @@ func (l *Lexer) cacheToken() error {
 
 
 	return nil
+}
+
+func (l *Lexer) DebugCacheToken() error {
+	return l.cacheToken()
+}
+
+func (l *Lexer) DebugReadToken() (*Token, error) {
+	return l.readToken()
 }
