@@ -143,3 +143,11 @@ func (l *Lexer) DebugCacheToken() error {
 func (l *Lexer) DebugReadToken() (*Token, error) {
 	return l.readToken()
 }
+
+func (l *Lexer) GetCachedCount() uint {
+	if l.writeInd >= l.readInd {
+		return l.writeInd - l.readInd;
+	} else {
+		return lexerRbufferSize - l.readInd + l.writeInd;
+	}
+}

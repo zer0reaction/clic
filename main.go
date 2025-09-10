@@ -11,20 +11,15 @@ func main() {
 
 	log.SetFlags(0)
 
-	lexer.LoadString("  ()\n\n(  )\n))))")
+	lexer.LoadString("\n  ))  )\t)\n)   \n")
 
-	for {
-		fmt.Println("--------------------------------------------------------------------------------")
-		err := lexer.DebugCacheToken()
-		if err != nil {
-			log.Fatal(err)
-		}
+	lexer.DebugCacheToken()
+	lexer.DebugCacheToken()
+	_, _ = lexer.DebugReadToken()
+	lexer.DebugCacheToken()
+	lexer.DebugCacheToken()
+	_, _ = lexer.DebugReadToken()
+	lexer.DebugCacheToken()
 
-		token, err := lexer.DebugReadToken()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		token.PrintInfo()
-	}
+	fmt.Println(lexer.GetCachedCount())
 }
