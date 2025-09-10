@@ -58,7 +58,7 @@ func (l *Lexer) DebugCacheToken() error {
 }
 
 func (l *Lexer) DebugReadToken() (*Token, error) {
-	return l.readToken()
+	return l.popToken()
 }
 
 func (l *Lexer) LoadString(data string) {
@@ -69,7 +69,7 @@ func (l *Lexer) LoadString(data string) {
 	l.readInd = 0
 }
 
-func (l *Lexer) readToken() (*Token, error) {
+func (l *Lexer) popToken() (*Token, error) {
 	if l.readInd == l.writeInd {
 		return nil, errors.New("readToken: ring buffer underflow")
 	}
@@ -80,7 +80,7 @@ func (l *Lexer) readToken() (*Token, error) {
 	return t, nil
 }
 
-func (l *Lexer) writeToken(t Token) error {
+func (l *Lexer) pushToken(t Token) error {
 	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
 		return errors.New("writeToken: ring buffer overflow")
 	}
@@ -139,7 +139,7 @@ func (l *Lexer) cacheToken() error {
 			t.TableId = id
 		}
 
-		err := l.writeToken(t)
+		err := l.pushToken(t)
 		if err != nil {
 			return err
 		}
@@ -174,4 +174,18 @@ func (l *Lexer) PeekToken(offset uint) (*Token, error) {
 	}
 
 	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
+}
+
+func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
+	token, err := l.PeekToken(0)
+	if err != nil {
+		return nil, err
+	}
+
+	if token.Type != tokenType {
+		return nil, fmt.Errorf("MatchToken: expected token [%d]",
+			tokenType)
+	}
+
+	return l.popToken()
 }
