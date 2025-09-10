@@ -48,6 +48,14 @@ func (t *Token) PrintInfo() {
 			t.Type, t.Line, t.Column, t.TableId)
 }
 
+func (l *Lexer) DebugCacheToken() error {
+	return l.cacheToken()
+}
+
+func (l *Lexer) DebugReadToken() (*Token, error) {
+	return l.readToken()
+}
+
 func (l *Lexer) LoadString(data string) {
 	l.data = data
 	l.line = 1
@@ -136,18 +144,21 @@ func (l *Lexer) cacheToken() error {
 	return nil
 }
 
-func (l *Lexer) DebugCacheToken() error {
-	return l.cacheToken()
-}
-
-func (l *Lexer) DebugReadToken() (*Token, error) {
-	return l.readToken()
-}
-
 func (l *Lexer) GetCachedCount() uint {
 	if l.writeInd >= l.readInd {
 		return l.writeInd - l.readInd;
 	} else {
 		return lexerRbufferSize - l.readInd + l.writeInd;
 	}
+}
+
+func (l *Lexer) PeekToken(offset uint) (*Token, error) {
+	count := l.GetCachedCount()
+
+	if offset >= count {
+		return nil, fmt.Errorf("PeekToken: offset (%d) exceeds count (%d)",
+					offset, count)
+	}
+
+	return &l.rbuffer[l.readInd + offset], nil
 }

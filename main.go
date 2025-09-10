@@ -15,11 +15,23 @@ func main() {
 
 	lexer.DebugCacheToken()
 	lexer.DebugCacheToken()
-	_, _ = lexer.DebugReadToken()
 	lexer.DebugCacheToken()
 	lexer.DebugCacheToken()
-	_, _ = lexer.DebugReadToken()
 	lexer.DebugCacheToken()
 
+	for i := uint(0); i < lexer.GetCachedCount(); i++ {
+		tp, err := lexer.PeekToken(i)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tp.PrintInfo()
+	}
+
 	fmt.Println(lexer.GetCachedCount())
+
+	tp, err := lexer.PeekToken(5)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tp.PrintInfo()
 }
