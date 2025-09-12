@@ -46,7 +46,7 @@ func List(l *lexer.Lexer) (*Node, error) {
 
 		return n, nil
 	default:
-		return nil, fmt.Errorf(":%d:%d expected list",
+		return nil, fmt.Errorf(":%d:%d: expected list",
 			lookahead.Line, lookahead.Column)
 	}
 }
@@ -94,7 +94,7 @@ func expr(l *lexer.Lexer) (*Node, error) {
 	case lexer.TokenRbrOpen:
 		return List(l)
 	default:
-		return nil, fmt.Errorf(":%d:%d expected expression",
+		return nil, fmt.Errorf(":%d:%d: expected expression",
 			lookahead.Line, lookahead.Column)
 	}
 }

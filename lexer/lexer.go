@@ -141,7 +141,7 @@ func (l *Lexer) cacheToken() error {
 	}
 
 	if !matched {
-		return fmt.Errorf(":%d:%d unknown syntax", l.line, l.column)
+		return fmt.Errorf(":%d:%d: unknown syntax", l.line, l.column)
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
 	}
 
 	if token.Type != tokenType {
-		return nil, fmt.Errorf(":%d:%d syntax error",
+		return nil, fmt.Errorf(":%d:%d: syntax error",
 			token.Line, token.Column)
 	}
 
