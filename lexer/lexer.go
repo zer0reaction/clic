@@ -15,6 +15,7 @@ const (
 	TokenRbrClose
 	TokenPlus
 	TokenInteger
+	TokenEOF
 	tokenCount
 )
 
@@ -111,6 +112,17 @@ func (l *Lexer) cacheToken() error {
 	}
 
 	matched := false
+
+	if l.data == "" {
+		t := Token{
+			Type:    TokenEOF,
+			Line:    l.line,
+			Column:  l.column,
+			TableId: symbol.IdNone,
+		}
+		l.pushToken(t)
+		return nil
+	}
 
 	for _, p := range tokenPatterns {
 		match := p.pattern.FindString(l.data)

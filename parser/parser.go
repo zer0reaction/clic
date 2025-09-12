@@ -16,12 +16,47 @@ const (
 type Node struct {
 	Type    NodeType
 	TableId int
+	Next    *Node
 
 	BinOpLval *Node
 	BinOpRval *Node
 }
 
-func List(l *lexer.Lexer) (*Node, error) {
+func Parse(l *lexer.Lexer) (*Node, error) {
+	var head *Node
+	var tail *Node
+
+	for {
+		t, err := l.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
+
+		if t.Type == lexer.TokenEOF {
+			break
+		}
+
+		n, err := list(l)
+		if err != nil {
+			return nil, err
+		}
+
+		if tail == nil {
+			if head != nil {
+				panic("head is not nil")
+			}
+			head = n
+			tail = n
+		} else {
+			tail.Next = n
+			tail = n
+		}
+	}
+
+	return head, nil
+}
+
+func list(l *lexer.Lexer) (*Node, error) {
 	lookahead, err := l.PeekToken(0)
 	if err != nil {
 		return nil, err
@@ -94,7 +129,7 @@ func expr(l *lexer.Lexer) (*Node, error) {
 
 		return &n, nil
 	case lexer.TokenRbrOpen:
-		return List(l)
+		return list(l)
 	default:
 		return nil, fmt.Errorf(":%d:%d: expected expression",
 			lookahead.Line, lookahead.Column)

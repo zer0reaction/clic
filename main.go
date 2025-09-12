@@ -16,10 +16,13 @@ func main() {
 		`
 (+ (+ 33 1)
    (+ 34 1))
+
+(+ (+ 32 2)
+   (+ 33 2))
 `
 
 	l.LoadString(program)
-	root, err := parser.List(&l)
+	root, err := parser.Parse(&l)
 	if err != nil {
 		log.Fatal(err)
 	}

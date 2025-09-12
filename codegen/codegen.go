@@ -19,7 +19,12 @@ func Codegen(root *parser.Node) string {
 	code += "	pushq	%rbp\n"
 	code += "	movq	%rsp, %rbp\n"
 	code += "	/* --------------- */\n"
-	code += codegenNode(root, true)
+
+	for root != nil {
+		code += codegenNode(root, true)
+		root = root.Next
+	}
+
 	code += "	/* --------------- */\n"
 	code += "	movq	$0, %rax\n"
 	code += "	popq	%rbp\n"
