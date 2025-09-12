@@ -85,6 +85,8 @@ func expr(l *lexer.Lexer) (*Node, error) {
 			return nil, err
 		}
 
+		symbol.DataToIntegerValue(t.TableId)
+
 		n := Node{
 			Type:    NodeInteger,
 			TableId: t.TableId,
