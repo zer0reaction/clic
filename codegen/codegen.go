@@ -6,26 +6,24 @@ import (
 	"github.com/zer0reaction/lisp-go/symbol"
 )
 
-var boilerplate string = `.section .text
-.globl main
-
-main:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	/* --------------- */
-`
-
 // Scratch registers
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
 
-// TODO: pop dangling stack value
 func Codegen(root *parser.Node) string {
-	code := boilerplate
-	code += codegenNode(root)
+	code := ""
+
+	code += ".section .text\n"
+	code += ".globl main\n"
+	code += "\n"
+	code += "main:\n"
+	code += "	pushq	%rbp\n"
+	code += "	movq	%rsp, %rbp\n"
 	code += "	/* --------------- */\n"
-	code += "	movq	$60, %rax\n"
-	code += "	movq	$0, %rdi\n"
-	code += "	syscall\n"
+	code += codegenNode(root, true)
+	code += "	/* --------------- */\n"
+	code += "	movq	$0, %rax\n"
+	code += "	popq	%rbp\n"
+	code += "	ret\n"
 	return code
 }
 
@@ -36,7 +34,7 @@ func Codegen(root *parser.Node) string {
 // STACK BASE
 // 4 (rval)
 // 3 (lval)
-func codegenNode(n *parser.Node) string {
+func codegenNode(n *parser.Node, orphan bool) string {
 	code := ""
 
 	switch n.Type {
@@ -45,8 +43,8 @@ func codegenNode(n *parser.Node) string {
 		code += fmt.Sprintf("	pushq	$%d\n",
 			symbol.GetIntegerValue(n.TableId))
 	case parser.NodeBinOpSum:
-		code += codegenNode(n.BinOpRval)
-		code += codegenNode(n.BinOpLval)
+		code += codegenNode(n.BinOpRval, false)
+		code += codegenNode(n.BinOpLval, false)
 
 		code += "	/* BinOpSum */\n"
 		code += "	popq	%rax\n" // lval
@@ -55,6 +53,11 @@ func codegenNode(n *parser.Node) string {
 		code += "	pushq	%rax\n"
 	default:
 		panic("node type not implemented")
+	}
+
+	if orphan {
+		code += "	/* Pop orphan value */\n"
+		code += "	add	$8, %rsp\n"
 	}
 
 	return code
