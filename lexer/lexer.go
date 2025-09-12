@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"errors"
 	"fmt"
 	"github.com/zer0reaction/lisp-go/symbol"
 	"regexp"
@@ -49,7 +48,7 @@ var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (t *Token) PrintInfo() {
-	fmt.Printf("type:%d line:%d col:%d id:%d\n",
+	fmt.Printf("type:%d line:%d column:%d id:%d\n",
 		t.Type, t.Line, t.Column, t.TableId)
 }
 
@@ -57,7 +56,7 @@ func (l *Lexer) DebugCacheToken() error {
 	return l.cacheToken()
 }
 
-func (l *Lexer) DebugReadToken() (*Token, error) {
+func (l *Lexer) DebugReadToken() *Token {
 	return l.popToken()
 }
 
@@ -69,26 +68,24 @@ func (l *Lexer) LoadString(data string) {
 	l.readInd = 0
 }
 
-func (l *Lexer) popToken() (*Token, error) {
+func (l *Lexer) popToken() *Token {
 	if l.readInd == l.writeInd {
-		return nil, errors.New("readToken: ring buffer underflow")
+		panic("ring buffer underflow")
 	}
 
 	t := &l.rbuffer[l.readInd]
 	l.readInd = (l.readInd + 1) % lexerRbufferSize
 
-	return t, nil
+	return t
 }
 
-func (l *Lexer) pushToken(t Token) error {
+func (l *Lexer) pushToken(t Token) {
 	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
-		return errors.New("writeToken: ring buffer overflow")
+		panic("ring buffer overflow")
 	}
 
 	l.rbuffer[l.writeInd] = t
 	l.writeInd = (l.writeInd + 1) % lexerRbufferSize
-
-	return nil
 }
 
 func (l *Lexer) cacheToken() error {
@@ -132,17 +129,11 @@ func (l *Lexer) cacheToken() error {
 
 		if p.needsData {
 			id := symbol.Create()
-			err := symbol.SetData(id, match)
-			if err != nil {
-				return err
-			}
+			symbol.SetData(id, match)
 			t.TableId = id
 		}
 
-		err := l.pushToken(t)
-		if err != nil {
-			return err
-		}
+		l.pushToken(t)
 
 		l.data = l.data[len(match):]
 		l.column += uint(len(match))
@@ -150,8 +141,7 @@ func (l *Lexer) cacheToken() error {
 	}
 
 	if !matched {
-		return fmt.Errorf("cacheToken: no tokens matched at line %d, column %d",
-			l.line, l.column)
+		return fmt.Errorf(":%d:%d unknown syntax", l.line, l.column)
 	}
 
 	return nil
@@ -183,9 +173,9 @@ func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
 	}
 
 	if token.Type != tokenType {
-		return nil, fmt.Errorf("MatchToken: expected token [%d]",
-			tokenType)
+		return nil, fmt.Errorf(":%d:%d syntax error",
+			token.Line, token.Column)
 	}
 
-	return l.popToken()
+	return l.popToken(), nil
 }

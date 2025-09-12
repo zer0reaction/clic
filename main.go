@@ -12,7 +12,7 @@ func main() {
 	var l lexer.Lexer
 	log.SetFlags(0)
 
-	l.LoadString("(+ 34 (+ 34 -33))")
+	l.LoadString("(+ 34 (+ 34 (1)))")
 	_, err := parser.List(&l)
 	if err != nil {
 		log.Fatal(err)

@@ -12,14 +12,11 @@ type symbol struct {
 
 var table []symbol
 
-func PrintInfo(id int) error {
+func PrintInfo(id int) {
 	if id >= len(table) || id == IdNone {
-		return fmt.Errorf("PrintInfo: invalid id %d", id)
+		panic("invalid id")
 	}
-
 	fmt.Printf("id:%d data:%s\n", id, table[id].data)
-
-	return nil
 }
 
 func Create() int {
@@ -28,11 +25,10 @@ func Create() int {
 	return id
 }
 
-func SetData(id int, data string) error {
+func SetData(id int, data string) {
 	if id >= len(table) || id == IdNone {
-		return fmt.Errorf("SetData: invalid id %d", id)
+		panic("invalid id")
 	}
 
 	table[id].data = data
-	return nil
 }

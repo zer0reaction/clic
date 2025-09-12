@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"errors"
+	"fmt"
 	"github.com/zer0reaction/lisp-go/lexer"
 	"github.com/zer0reaction/lisp-go/symbol"
 )
@@ -24,7 +24,7 @@ type Node struct {
 func List(l *lexer.Lexer) (*Node, error) {
 	lookahead, err := l.PeekToken(0)
 	if err != nil {
-		return nil, errors.New("failed to get the next token")
+		return nil, err
 	}
 
 	switch lookahead.Type {
@@ -46,14 +46,15 @@ func List(l *lexer.Lexer) (*Node, error) {
 
 		return n, nil
 	default:
-		return nil, errors.New("failed to parse list")
+		return nil, fmt.Errorf(":%d:%d expected list",
+			lookahead.Line, lookahead.Column)
 	}
 }
 
 func expr(l *lexer.Lexer) (*Node, error) {
 	lookahead, err := l.PeekToken(0)
 	if err != nil {
-		return nil, errors.New("parse: failed to get next token")
+		return nil, err
 	}
 
 	switch lookahead.Type {
@@ -93,6 +94,7 @@ func expr(l *lexer.Lexer) (*Node, error) {
 	case lexer.TokenRbrOpen:
 		return List(l)
 	default:
-		return nil, errors.New("syntax error in expression")
+		return nil, fmt.Errorf(":%d:%d expected expression",
+			lookahead.Line, lookahead.Column)
 	}
 }
