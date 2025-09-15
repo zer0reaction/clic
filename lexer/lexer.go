@@ -11,7 +11,8 @@ const lexerRbufferSize uint = 16
 type TokenType uint
 
 const (
-	TokenRbrOpen TokenType = iota
+	tokenError TokenType = iota
+	TokenRbrOpen
 	TokenRbrClose
 	TokenPlus
 	TokenInteger
@@ -185,8 +186,9 @@ func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
 	}
 
 	if token.Type != tokenType {
-		return nil, fmt.Errorf(":%d:%d: syntax error",
-			token.Line, token.Column)
+		// TODO: add displaying names
+		return nil, fmt.Errorf(":%d:%d: expected [%d]",
+			token.Line, token.Column, tokenType)
 	}
 
 	return l.popToken(), nil

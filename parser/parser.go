@@ -1,3 +1,10 @@
+/*
+   Parsing is done in two steps:
+
+   1. Construct a list of items
+   2. Convert a list to a tree
+*/
+
 package parser
 
 import (
@@ -6,6 +13,132 @@ import (
 	"github.com/zer0reaction/lisp-go/symbol"
 )
 
+type list struct {
+	head *item
+	tail *item
+}
+
+type item struct {
+	tp   itemType
+	id   int
+	lp   *list
+	next *item
+}
+
+type itemType uint
+
+const (
+	itemError itemType = iota
+	itemPlus
+	itemInteger
+	itemList
+)
+
+func (ls *list) add(it *item) {
+	if ls.tail == nil && ls.head != ls.tail {
+		panic("list head is not nil")
+	}
+
+	if ls.tail == nil {
+		ls.head = it
+		ls.tail = it
+	} else {
+		ls.tail.next = it
+		ls.tail = ls.tail.next
+	}
+}
+
+func (ls *list) DebugCount() uint {
+	if ls.tail == nil && ls.head != ls.tail {
+		panic("list head is not nil")
+	}
+
+	cnt := uint(0)
+	cur := ls.head
+
+	for cur != nil {
+		cur = cur.next
+		cnt += 1
+	}
+
+	return cnt
+}
+
+func chopList(lx *lexer.Lexer) (*list, error) {
+	var ls list
+
+	_, err := lx.Match(lexer.TokenRbrOpen)
+	if err != nil {
+		return nil, err
+	}
+
+	err = chopListBody(lx, &ls)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = lx.Match(lexer.TokenRbrClose)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ls, nil
+}
+
+func chopListBody(lx *lexer.Lexer, ls *list) error {
+	lookahead, err := lx.PeekToken(0)
+	if err != nil {
+		return err
+	}
+
+	switch lookahead.Type {
+	case lexer.TokenRbrClose:
+		// chopList() matches ')'
+		return nil
+	case lexer.TokenPlus:
+		it := item{id: symbol.IdNone}
+
+		_, err := lx.Match(lexer.TokenPlus)
+		if err != nil {
+			return err
+		}
+		it.tp = itemPlus
+
+		ls.add(&it)
+		return chopListBody(lx, ls)
+	case lexer.TokenInteger:
+		it := item{id: symbol.IdNone}
+
+		_, err := lx.Match(lexer.TokenInteger)
+		if err != nil {
+			return err
+		}
+		it.tp = itemPlus
+
+		ls.add(&it)
+		return chopListBody(lx, ls)
+	case lexer.TokenRbrOpen:
+		it := item{id: symbol.IdNone}
+
+		lp, err := chopList(lx)
+		if err != nil {
+			return err
+		}
+		it.lp = lp
+
+		ls.add(&it)
+		return chopListBody(lx, ls)
+	default:
+		return fmt.Errorf(":%d:%d: expected list body",
+			lookahead.Line, lookahead.Column)
+	}
+}
+
+func DebugChopList(lx *lexer.Lexer) (*list, error) {
+	return chopList(lx)
+}
+
+/*
 type NodeType uint
 
 const (
@@ -135,3 +268,4 @@ func expr(l *lexer.Lexer) (*Node, error) {
 			lookahead.Line, lookahead.Column)
 	}
 }
+*/

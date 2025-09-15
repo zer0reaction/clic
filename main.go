@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/zer0reaction/lisp-go/codegen"
 	"github.com/zer0reaction/lisp-go/lexer"
 	"github.com/zer0reaction/lisp-go/parser"
 	"log"
@@ -17,16 +16,20 @@ func main() {
 (+ (+ 33 1)
    (+ 34 1))
 
-(+ (+ 32 2)
-   (+ 33 2))
+(() ())
 `
-
 	l.LoadString(program)
-	root, err := parser.Parse(&l)
+
+	list1, err := parser.DebugChopList(&l)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	code := codegen.Codegen(root)
-	fmt.Println(code)
+	list2, err := parser.DebugChopList(&l)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(list1.DebugCount())
+	fmt.Println(list2.DebugCount())
 }
