@@ -13,18 +13,6 @@ import (
 	"github.com/zer0reaction/lisp-go/symbol"
 )
 
-type list struct {
-	head *item
-	tail *item
-}
-
-type item struct {
-	tp   itemType
-	id   int
-	lp   *list
-	next *item
-}
-
 type itemType uint
 
 const (
@@ -33,6 +21,18 @@ const (
 	itemInteger
 	itemList
 )
+
+type item struct {
+	tp   itemType
+	id   int
+	lp   *list
+	next *item
+}
+
+type list struct {
+	head *item
+	tail *item
+}
 
 func (ls *list) add(it *item) {
 	if ls.tail == nil && ls.head != ls.tail {
@@ -108,6 +108,7 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		if err != nil {
 			return err
 		}
+		it.tp = itemList
 		it.lp = lp
 
 		ls.add(&it)
