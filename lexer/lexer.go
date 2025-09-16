@@ -54,14 +54,6 @@ func (t *Token) PrintInfo() {
 		t.Type, t.Line, t.Column, t.TableId)
 }
 
-func (l *Lexer) DebugCacheToken() error {
-	return l.cacheToken()
-}
-
-func (l *Lexer) DebugReadToken() *Token {
-	return l.popToken()
-}
-
 func (l *Lexer) LoadString(data string) {
 	l.data = data
 	l.line = 1

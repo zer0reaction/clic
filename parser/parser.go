@@ -48,22 +48,6 @@ func (ls *list) add(it *item) {
 	}
 }
 
-func (ls *list) DebugCount() uint {
-	if ls.tail == nil && ls.head != ls.tail {
-		panic("list head is not nil")
-	}
-
-	cnt := uint(0)
-	cur := ls.head
-
-	for cur != nil {
-		cur = cur.next
-		cnt += 1
-	}
-
-	return cnt
-}
-
 func chopList(lx *lexer.Lexer) (*list, error) {
 	var ls list
 
@@ -132,10 +116,6 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		return fmt.Errorf(":%d:%d: expected list body",
 			lookahead.Line, lookahead.Column)
 	}
-}
-
-func DebugChopList(lx *lexer.Lexer) (*list, error) {
-	return chopList(lx)
 }
 
 /*
