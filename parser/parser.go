@@ -23,10 +23,10 @@ const (
 )
 
 type item struct {
-	tp   itemType
-	id   int
-	lp   *list
-	next *item
+	itemType itemType
+	tableId  int
+	listPtr  *list
+	next     *item
 }
 
 type list struct {
@@ -80,36 +80,36 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		// chopList() matches ')'
 		return nil
 	case lexer.TokenPlus:
-		it := item{id: symbol.IdNone}
+		it := item{tableId: symbol.IdNone}
 
 		_, err := lx.Match(lexer.TokenPlus)
 		if err != nil {
 			return err
 		}
-		it.tp = itemPlus
+		it.itemType = itemPlus
 
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	case lexer.TokenInteger:
-		it := item{id: symbol.IdNone}
+		it := item{tableId: symbol.IdNone}
 
 		_, err := lx.Match(lexer.TokenInteger)
 		if err != nil {
 			return err
 		}
-		it.tp = itemPlus
+		it.itemType = itemPlus
 
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	case lexer.TokenRbrOpen:
-		it := item{id: symbol.IdNone}
+		it := item{tableId: symbol.IdNone}
 
 		lp, err := chopList(lx)
 		if err != nil {
 			return err
 		}
-		it.tp = itemList
-		it.lp = lp
+		it.itemType = itemList
+		it.listPtr = lp
 
 		ls.add(&it)
 		return chopListBody(lx, ls)
