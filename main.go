@@ -13,10 +13,8 @@ func main() {
 
 	program :=
 		`
-(+ (+ 33 1)
-   (+ 34 1))
-
-(() ())
+(+ 3 4)
+(+ 3 (+ 34 9))
 `
 	l.LoadString(program)
 
@@ -32,4 +30,13 @@ func main() {
 
 	fmt.Println(list1.DebugCount())
 	fmt.Println(list2.DebugCount())
+
+	_, err = parser.DebugParseList(list1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = parser.DebugParseList(list2)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

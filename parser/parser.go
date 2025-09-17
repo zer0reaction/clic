@@ -25,8 +25,11 @@ const (
 type item struct {
 	itemType itemType
 	tableId  int
-	listPtr  *list
+	line     uint
+	column   uint
 	next     *item
+
+	listPtr *list
 }
 
 type list struct {
@@ -34,8 +37,25 @@ type list struct {
 	tail *item
 }
 
+type NodeType uint
+
+const (
+	nodeError NodeType = iota
+	NodeBinOpSum
+	NodeInteger
+)
+
+type Node struct {
+	Type    NodeType
+	TableId int
+	Next    *Node
+
+	BinOpLval *Node
+	BinOpRval *Node
+}
+
 func (ls *list) add(it *item) {
-	if ls.tail == nil && ls.head != ls.tail {
+	if ls.tail == nil && ls.head != nil {
 		panic("list head is not nil")
 	}
 
@@ -46,6 +66,35 @@ func (ls *list) add(it *item) {
 		ls.tail.next = it
 		ls.tail = ls.tail.next
 	}
+}
+
+func (ls *list) count() uint {
+	if ls.tail == nil && ls.head != nil {
+		panic("list head is not nil")
+	}
+
+	cnt := uint(0)
+	cur := ls.head
+
+	for cur != nil {
+		cur = cur.next
+		cnt += 1
+	}
+
+	return cnt
+}
+
+func (ls *list) get(index uint) *item {
+	current := ls.head
+
+	for i := uint(0); i < index; i++ {
+		if current == nil {
+			panic("list item unreachable")
+		}
+		current = current.next
+	}
+
+	return current
 }
 
 func chopList(lx *lexer.Lexer) (*list, error) {
@@ -75,39 +124,43 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		return err
 	}
 
+	it := item{
+		tableId: symbol.IdNone,
+		line:    lookahead.Line,
+		column:  lookahead.Column,
+	}
+
 	switch lookahead.Type {
 	case lexer.TokenRbrClose:
 		// chopList() matches ')'
+
 		return nil
 	case lexer.TokenPlus:
-		it := item{tableId: symbol.IdNone}
-
 		_, err := lx.Match(lexer.TokenPlus)
 		if err != nil {
 			return err
 		}
+
 		it.itemType = itemPlus
 
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	case lexer.TokenInteger:
-		it := item{tableId: symbol.IdNone}
-
 		_, err := lx.Match(lexer.TokenInteger)
 		if err != nil {
 			return err
 		}
-		it.itemType = itemPlus
+
+		it.itemType = itemInteger
 
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	case lexer.TokenRbrOpen:
-		it := item{tableId: symbol.IdNone}
-
 		lp, err := chopList(lx)
 		if err != nil {
 			return err
 		}
+
 		it.itemType = itemList
 		it.listPtr = lp
 
@@ -119,134 +172,61 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 	}
 }
 
-/*
-type NodeType uint
-
-const (
-	NodeBinOpSum NodeType = iota
-	NodeInteger
-)
-
-type Node struct {
-	Type    NodeType
-	TableId int
-	Next    *Node
-
-	BinOpLval *Node
-	BinOpRval *Node
-}
-
-func Parse(l *lexer.Lexer) (*Node, error) {
-	var head *Node
-	var tail *Node
-
-	for {
-		t, err := l.PeekToken(0)
-		if err != nil {
-			return nil, err
-		}
-
-		if t.Type == lexer.TokenEOF {
-			break
-		}
-
-		n, err := list(l)
-		if err != nil {
-			return nil, err
-		}
-
-		if tail == nil {
-			if head != nil {
-				panic("head is not nil")
-			}
-			head = n
-			tail = n
-		} else {
-			tail.Next = n
-			tail = n
-		}
+func parseList(ls *list) (*Node, error) {
+	if ls.head == nil {
+		panic("list head is nil")
 	}
 
-	return head, nil
-}
-
-func list(l *lexer.Lexer) (*Node, error) {
-	lookahead, err := l.PeekToken(0)
-	if err != nil {
-		return nil, err
+	n := Node{
+		TableId: symbol.IdNone,
 	}
 
-	switch lookahead.Type {
-	case lexer.TokenRbrOpen:
-		_, err := l.Match(lexer.TokenRbrOpen)
+	switch ls.head.itemType {
+	case itemPlus:
+		n.Type = NodeBinOpSum
+
+		if ls.count() != 3 {
+			return nil, fmt.Errorf(":%d:%d: expected 3 items",
+				ls.head.line, ls.head.column)
+		}
+
+		lval, err := parseItem(ls.get(1))
 		if err != nil {
 			return nil, err
 		}
-
-		n, err := expr(l)
+		rval, err := parseItem(ls.get(2))
 		if err != nil {
 			return nil, err
 		}
-
-		_, err = l.Match(lexer.TokenRbrClose)
-		if err != nil {
-			return nil, err
-		}
-
-		return n, nil
-	default:
-		return nil, fmt.Errorf(":%d:%d: expected list",
-			lookahead.Line, lookahead.Column)
-	}
-}
-
-func expr(l *lexer.Lexer) (*Node, error) {
-	lookahead, err := l.PeekToken(0)
-	if err != nil {
-		return nil, err
-	}
-
-	switch lookahead.Type {
-	case lexer.TokenPlus:
-		_, err := l.Match(lexer.TokenPlus)
-		if err != nil {
-			return nil, err
-		}
-
-		n := Node{
-			Type:    NodeBinOpSum,
-			TableId: symbol.IdNone,
-		}
-
-		n.BinOpLval, err = expr(l)
-		if err != nil {
-			return nil, err
-		}
-		n.BinOpRval, err = expr(l)
-		if err != nil {
-			return nil, err
-		}
+		n.BinOpLval = lval
+		n.BinOpRval = rval
 
 		return &n, nil
-	case lexer.TokenInteger:
-		t, err := l.Match(lexer.TokenInteger)
-		if err != nil {
-			return nil, err
-		}
-
-		symbol.DataToIntegerValue(t.TableId)
-
-		n := Node{
-			Type:    NodeInteger,
-			TableId: t.TableId,
-		}
-
-		return &n, nil
-	case lexer.TokenRbrOpen:
-		return list(l)
 	default:
-		return nil, fmt.Errorf(":%d:%d: expected expression",
-			lookahead.Line, lookahead.Column)
+		return nil, fmt.Errorf(":%d:%d: unexpected first item",
+			ls.head.line, ls.head.column)
 	}
 }
-*/
+
+func parseItem(it *item) (*Node, error) {
+	if it == nil {
+		panic("item is nil")
+	}
+
+	n := Node{
+		TableId: symbol.IdNone,
+	}
+
+	switch it.itemType {
+	case itemInteger:
+		n.Type = NodeInteger
+		n.TableId = it.tableId
+		return &n, nil
+	case itemList:
+		return parseList(it.listPtr)
+	default:
+		// TODO: add displaying names
+		return nil, fmt.Errorf(":%d:%d: unexpected item, got [%d]",
+			it.line, it.column, it.itemType)
+	}
+}

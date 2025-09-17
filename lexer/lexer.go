@@ -179,7 +179,7 @@ func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
 
 	if token.Type != tokenType {
 		// TODO: add displaying names
-		return nil, fmt.Errorf(":%d:%d: expected [%d]",
+		return nil, fmt.Errorf(":%d:%d: expected token [%d]",
 			token.Line, token.Column, tokenType)
 	}
 
