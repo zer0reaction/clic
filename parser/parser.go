@@ -35,6 +35,8 @@ type item struct {
 type list struct {
 	head *item
 	tail *item
+	line   uint
+	column uint
 }
 
 type NodeType uint
@@ -43,6 +45,7 @@ const (
 	nodeError NodeType = iota
 	NodeBinOpSum
 	NodeInteger
+	NodeBlock
 )
 
 type Node struct {
@@ -52,6 +55,8 @@ type Node struct {
 
 	BinOpLval *Node
 	BinOpRval *Node
+
+	BlockStart *Node
 }
 
 func (ls *list) add(it *item) {
@@ -100,10 +105,18 @@ func (ls *list) get(index uint) *item {
 func chopList(lx *lexer.Lexer) (*list, error) {
 	var ls list
 
-	err := lx.Match(lexer.TokenRbrOpen)
+	lookahead, err := lx.PeekToken(0)
 	if err != nil {
 		return nil, err
 	}
+
+	err = lx.Match(lexer.TokenRbrOpen)
+	if err != nil {
+		return nil, err
+	}
+
+	ls.line = lookahead.Line
+	ls.column = lookahead.Column
 
 	err = chopListBody(lx, &ls)
 	if err != nil {
@@ -169,14 +182,15 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	default:
-		return fmt.Errorf(":%d:%d: expected list body",
+		return fmt.Errorf(":%d:%d: error: expected list body",
 			lookahead.Line, lookahead.Column)
 	}
 }
 
 func parseList(ls *list) (*Node, error) {
 	if ls.head == nil {
-		panic("list head is nil")
+		return nil, fmt.Errorf(":%d:%d: error: empty list",
+			ls.line, ls.column)
 	}
 
 	n := Node{
@@ -188,8 +202,8 @@ func parseList(ls *list) (*Node, error) {
 		n.Type = NodeBinOpSum
 
 		if ls.count() != 3 {
-			return nil, fmt.Errorf(":%d:%d: expected 3 items",
-				ls.head.line, ls.head.column)
+			return nil, fmt.Errorf(":%d:%d: error: expected 3 items",
+					ls.head.line, ls.head.column)
 		}
 
 		lval, err := parseItem(ls.get(1))
@@ -204,8 +218,35 @@ func parseList(ls *list) (*Node, error) {
 		n.BinOpRval = rval
 
 		return &n, nil
+	case itemList:
+		n.Type = NodeBlock
+
+		cur := ls.head
+		var tail *Node
+
+		for cur != nil {
+			blockNode, err := parseItem(cur)
+			if err != nil {
+				return nil, err
+			}
+
+			if tail == nil {
+				if n.BlockStart != nil {
+					panic("block start is not nil")
+				}
+				n.BlockStart = blockNode
+				tail = n.BlockStart
+			} else {
+				tail.Next = blockNode
+				tail = tail.Next
+			}
+
+			cur = cur.next
+		}
+
+		return &n, nil
 	default:
-		return nil, fmt.Errorf(":%d:%d: unexpected first item",
+		return nil, fmt.Errorf(":%d:%d: error: unexpected first item",
 			ls.head.line, ls.head.column)
 	}
 }
@@ -228,7 +269,7 @@ func parseItem(it *item) (*Node, error) {
 		return parseList(it.listPtr)
 	default:
 		// TODO: add displaying names
-		return nil, fmt.Errorf(":%d:%d: unexpected item, got [%d]",
-			it.line, it.column, it.itemType)
+		return nil, fmt.Errorf(":%d:%d: error: unexpected item",
+			it.line, it.column)
 	}
 }

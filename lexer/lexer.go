@@ -154,7 +154,8 @@ func (l *Lexer) cacheToken() error {
 	}
 
 	if !matched {
-		return fmt.Errorf(":%d:%d: unknown syntax", l.line, l.column)
+		return fmt.Errorf(":%d:%d: error: unknown syntax",
+			l.line, l.column)
 	}
 
 	return nil
@@ -187,7 +188,7 @@ func (l *Lexer) Match(tokenType TokenType) error {
 
 	if token.Type != tokenType {
 		// TODO: add displaying names
-		return fmt.Errorf(":%d:%d: expected token [%d]",
+		return fmt.Errorf(":%d:%d: error: expected token [%d]",
 			token.Line, token.Column, tokenType)
 	}
 
