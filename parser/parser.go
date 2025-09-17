@@ -100,7 +100,7 @@ func (ls *list) get(index uint) *item {
 func chopList(lx *lexer.Lexer) (*list, error) {
 	var ls list
 
-	_, err := lx.Match(lexer.TokenRbrOpen)
+	err := lx.Match(lexer.TokenRbrOpen)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func chopList(lx *lexer.Lexer) (*list, error) {
 		return nil, err
 	}
 
-	_, err = lx.Match(lexer.TokenRbrClose)
+	err = lx.Match(lexer.TokenRbrClose)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 
 		return nil
 	case lexer.TokenPlus:
-		_, err := lx.Match(lexer.TokenPlus)
+		err := lx.Match(lexer.TokenPlus)
 		if err != nil {
 			return err
 		}
@@ -146,7 +146,7 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		ls.add(&it)
 		return chopListBody(lx, ls)
 	case lexer.TokenInteger:
-		_, err := lx.Match(lexer.TokenInteger)
+		err := lx.Match(lexer.TokenInteger)
 		if err != nil {
 			return err
 		}

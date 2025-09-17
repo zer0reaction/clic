@@ -73,6 +73,14 @@ func (l *Lexer) popToken() *Token {
 	return t
 }
 
+func (l *Lexer) consumeToken() {
+	if l.readInd == l.writeInd {
+		panic("ring buffer underflow")
+	}
+
+	l.readInd = (l.readInd + 1) % lexerRbufferSize
+}
+
 func (l *Lexer) pushToken(t Token) {
 	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
 		panic("ring buffer overflow")
@@ -171,18 +179,18 @@ func (l *Lexer) PeekToken(offset uint) (*Token, error) {
 	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }
 
-// TODO: add Consume()
-func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
+func (l *Lexer) Match(tokenType TokenType) error {
 	token, err := l.PeekToken(0)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if token.Type != tokenType {
 		// TODO: add displaying names
-		return nil, fmt.Errorf(":%d:%d: expected token [%d]",
+		return fmt.Errorf(":%d:%d: expected token [%d]",
 			token.Line, token.Column, tokenType)
 	}
 
-	return l.popToken(), nil
+	l.consumeToken()
+	return nil
 }
