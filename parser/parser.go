@@ -152,6 +152,8 @@ func chopListBody(lx *lexer.Lexer, ls *list) error {
 		}
 
 		it.itemType = itemInteger
+		it.tableId = lookahead.TableId
+		symbol.DataToIntegerValue(it.tableId)
 
 		ls.add(&it)
 		return chopListBody(lx, ls)

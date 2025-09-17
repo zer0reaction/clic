@@ -171,6 +171,7 @@ func (l *Lexer) PeekToken(offset uint) (*Token, error) {
 	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }
 
+// TODO: add Consume()
 func (l *Lexer) Match(tokenType TokenType) (*Token, error) {
 	token, err := l.PeekToken(0)
 	if err != nil {
