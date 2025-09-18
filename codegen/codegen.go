@@ -3,7 +3,6 @@ package codegen
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/parser"
-	"github.com/zer0reaction/lisp-go/symbol"
 )
 
 // Scratch registers
@@ -45,11 +44,10 @@ func codegenNode(n *parser.Node, orphan bool) string {
 	switch n.Type {
 	case parser.NodeInteger:
 		code += "	/* Integer */\n"
-		code += fmt.Sprintf("	pushq	$%d\n",
-			symbol.GetIntegerValue(n.TableId))
+		code += fmt.Sprintf("	pushq	$%d\n", n.Integer.Value)
 	case parser.NodeBinOpSum:
-		code += codegenNode(n.BinOpRval, false)
-		code += codegenNode(n.BinOpLval, false)
+		code += codegenNode(n.BinOp.Rval, false)
+		code += codegenNode(n.BinOp.Lval, false)
 
 		code += "	/* BinOpSum */\n"
 		code += "	popq	%rax\n" // lval

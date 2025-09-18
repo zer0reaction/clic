@@ -2,7 +2,6 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/zer0reaction/lisp-go/symbol"
 	"regexp"
 )
 
@@ -21,10 +20,10 @@ const (
 )
 
 type Token struct {
-	Type    TokenType
-	Line    uint
-	Column  uint
-	TableId int
+	Type   TokenType
+	Line   uint
+	Column uint
+	Data   string
 }
 
 type Lexer struct {
@@ -50,8 +49,8 @@ var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (t *Token) PrintInfo() {
-	fmt.Printf("type:%d line:%d column:%d id:%d\n",
-		t.Type, t.Line, t.Column, t.TableId)
+	fmt.Printf("type:%d line:%d column:%d data:%d\n",
+		t.Type, t.Line, t.Column, t.Data)
 }
 
 func (l *Lexer) LoadString(data string) {
@@ -116,10 +115,9 @@ func (l *Lexer) cacheToken() error {
 
 	if l.data == "" {
 		t := Token{
-			Type:    TokenEOF,
-			Line:    l.line,
-			Column:  l.column,
-			TableId: symbol.IdNone,
+			Type:   TokenEOF,
+			Line:   l.line,
+			Column: l.column,
 		}
 		l.pushToken(t)
 		return nil
@@ -134,16 +132,13 @@ func (l *Lexer) cacheToken() error {
 		matched = true
 
 		t := Token{
-			Type:    p.tokenType,
-			Line:    l.line,
-			Column:  l.column,
-			TableId: symbol.IdNone,
+			Type:   p.tokenType,
+			Line:   l.line,
+			Column: l.column,
 		}
 
 		if p.needsData {
-			id := symbol.Create()
-			symbol.SetData(id, match)
-			t.TableId = id
+			t.Data = match
 		}
 
 		l.pushToken(t)

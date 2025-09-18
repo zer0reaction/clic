@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/lexer"
-	"github.com/zer0reaction/lisp-go/symbol"
+	"strconv"
 )
 
 type NodeType uint
@@ -20,6 +20,9 @@ type Node struct {
 	TableId int
 	Next    *Node
 
+	Integer struct {
+		Value int64
+	}
 	BinOp struct {
 		Lval *Node
 		Rval *Node
@@ -40,9 +43,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		return nil, err
 	}
 
-	n := Node{
-		TableId: symbol.IdNone,
-	}
+	n := Node{}
 
 	switch lookahead.Type {
 	case lexer.TokenPlus:
@@ -67,7 +68,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 	case lexer.TokenRbrOpen:
 		n.Type = NodeBlock
 
-		var tail *Node
+		var tail *Node = nil
 
 		for lookahead.Type != lexer.TokenRbrClose {
 			blockNode, err := parseList(lx)
@@ -111,20 +112,23 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 		return nil, err
 	}
 
-	n := Node{
-		TableId: symbol.IdNone,
-	}
+	n := Node{}
 
 	switch lookahead.Type {
 	case lexer.TokenInteger:
+		n.Type = NodeInteger
+
 		err := lx.Match(lexer.TokenInteger)
 		if err != nil {
 			return nil, err
 		}
 
-		n.Type = NodeInteger
-		n.TableId = lookahead.TableId
-		symbol.DataToIntegerValue(n.TableId)
+		value, err := strconv.ParseInt(lookahead.Data, 0, 64)
+		if err != nil {
+			panic("incorrect integer data")
+		}
+
+		n.Integer.Value = value
 	case lexer.TokenRbrOpen:
 		return parseList(lx)
 	default:
