@@ -20,10 +20,13 @@ type Node struct {
 	TableId int
 	Next    *Node
 
-	BinOpLval *Node
-	BinOpRval *Node
-
-	BlockStart *Node
+	BinOp struct {
+		Lval *Node
+		Rval *Node
+	}
+	Block struct {
+		Start *Node
+	}
 }
 
 func parseList(lx *lexer.Lexer) (*Node, error) {
@@ -59,8 +62,8 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		n.BinOpLval = lval
-		n.BinOpRval = rval
+		n.BinOp.Lval = lval
+		n.BinOp.Rval = rval
 	case lexer.TokenRbrOpen:
 		n.Type = NodeBlock
 
@@ -72,12 +75,12 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 				return nil, err
 			}
 
-			if tail == nil && n.BlockStart != nil {
+			if tail == nil && n.Block.Start != nil {
 				panic("block start is not nil")
 			}
 
 			if tail == nil {
-				n.BlockStart = blockNode
+				n.Block.Start = blockNode
 				tail = blockNode
 			} else {
 				tail.Next = blockNode
