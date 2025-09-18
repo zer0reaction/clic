@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"github.com/zer0reaction/lisp-go/codegen"
+	// "fmt"
+	// "github.com/zer0reaction/lisp-go/codegen"
 	"github.com/zer0reaction/lisp-go/lexer"
 	"github.com/zer0reaction/lisp-go/parser"
 	"log"
@@ -14,15 +14,22 @@ func main() {
 
 	program :=
 		`
-(+ 34 35)
+(
+  (let foo)
+)
+(let foo)
 `
 
 	l.LoadString(program)
 
-	root, err := parser.DebugParseList(&l)
+	_, err := parser.DebugParseList(&l)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = parser.DebugParseList(&l)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Print(codegen.Codegen(root))
+	// fmt.Print(codegen.Codegen(root))
 }

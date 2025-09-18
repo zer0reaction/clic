@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/lexer"
+	"github.com/zer0reaction/lisp-go/symbol"
 	"strconv"
 )
 
@@ -13,6 +14,7 @@ const (
 	NodeBinOpSum
 	NodeInteger
 	NodeBlock
+	NodeVariable
 )
 
 type Node struct {
@@ -28,6 +30,9 @@ type Node struct {
 	}
 	Block struct {
 		Start *Node
+	}
+	Variable struct {
+		TableId uint
 	}
 }
 
@@ -92,6 +97,30 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 				return nil, err
 			}
 		}
+	case lexer.TokenLet:
+		n.Type = NodeVariable
+
+		err := lx.Match(lexer.TokenLet)
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := lx.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
+		err = lx.Match(lexer.TokenIdent)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: add block ids
+		tableId, err := symbol.AddVariable(t.Data, 0)
+		if err != nil {
+			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
+				t.Line, t.Column)
+		}
+		n.Variable.TableId = tableId
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item",
 			lookahead.Line, lookahead.Column)
