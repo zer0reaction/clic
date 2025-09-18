@@ -17,7 +17,6 @@ const (
 
 type Node struct {
 	Type    NodeType
-	TableId int
 	Next    *Node
 
 	Integer struct {
