@@ -7,10 +7,10 @@ import (
 
 const lexerRbufferSize uint = 16
 
-type TokenType uint
+type TokenTag uint
 
 const (
-	tokenError TokenType = iota
+	tokenError TokenTag = iota
 	TokenRbrOpen
 	TokenRbrClose
 	TokenPlus
@@ -22,7 +22,7 @@ const (
 )
 
 type Token struct {
-	Type   TokenType
+	Tag    TokenTag
 	Line   uint
 	Column uint
 	Data   string
@@ -38,7 +38,7 @@ type Lexer struct {
 }
 
 var tokenPatterns = []struct {
-	tokenType TokenType
+	tag       TokenTag
 	pattern   *regexp.Regexp
 	needsData bool
 }{
@@ -53,8 +53,8 @@ var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (t *Token) PrintInfo() {
-	fmt.Printf("type:%d line:%d column:%d data:%d\n",
-		t.Type, t.Line, t.Column, t.Data)
+	fmt.Printf("tag:%d line:%d column:%d data:%d\n",
+		t.Tag, t.Line, t.Column, t.Data)
 }
 
 func (l *Lexer) LoadString(data string) {
@@ -119,7 +119,7 @@ func (l *Lexer) cacheToken() error {
 
 	if l.data == "" {
 		t := Token{
-			Type:   TokenEOF,
+			Tag:    TokenEOF,
 			Line:   l.line,
 			Column: l.column,
 		}
@@ -136,7 +136,7 @@ func (l *Lexer) cacheToken() error {
 		matched = true
 
 		t := Token{
-			Type:   p.tokenType,
+			Tag:    p.tag,
 			Line:   l.line,
 			Column: l.column,
 		}
@@ -179,16 +179,16 @@ func (l *Lexer) PeekToken(offset uint) (*Token, error) {
 	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }
 
-func (l *Lexer) Match(tokenType TokenType) error {
+func (l *Lexer) Match(tag TokenTag) error {
 	token, err := l.PeekToken(0)
 	if err != nil {
 		return err
 	}
 
-	if token.Type != tokenType {
+	if token.Tag != tag {
 		// TODO: add displaying names
 		return fmt.Errorf(":%d:%d: error: expected token [%d]",
-			token.Line, token.Column, tokenType)
+			token.Line, token.Column, tag)
 	}
 
 	l.consumeToken()

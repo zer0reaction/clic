@@ -7,10 +7,10 @@ import (
 	"strconv"
 )
 
-type NodeType uint
+type NodeTag uint
 
 const (
-	nodeError NodeType = iota
+	nodeError NodeTag = iota
 	NodeBinOpSum
 	NodeInteger
 	NodeBlock
@@ -18,8 +18,8 @@ const (
 )
 
 type Node struct {
-	Type    NodeType
-	Next    *Node
+	Tag  NodeTag
+	Next *Node
 
 	Integer struct {
 		Value int64
@@ -49,9 +49,9 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 	n := Node{}
 
-	switch lookahead.Type {
+	switch lookahead.Tag {
 	case lexer.TokenPlus:
-		n.Type = NodeBinOpSum
+		n.Tag = NodeBinOpSum
 
 		err := lx.Match(lexer.TokenPlus)
 		if err != nil {
@@ -70,11 +70,11 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.BinOp.Lval = lval
 		n.BinOp.Rval = rval
 	case lexer.TokenRbrOpen:
-		n.Type = NodeBlock
+		n.Tag = NodeBlock
 
 		var tail *Node = nil
 
-		for lookahead.Type != lexer.TokenRbrClose {
+		for lookahead.Tag != lexer.TokenRbrClose {
 			blockNode, err := parseList(lx)
 			if err != nil {
 				return nil, err
@@ -98,7 +98,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 			}
 		}
 	case lexer.TokenLet:
-		n.Type = NodeVariable
+		n.Tag = NodeVariable
 
 		err := lx.Match(lexer.TokenLet)
 		if err != nil {
@@ -142,9 +142,9 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 
 	n := Node{}
 
-	switch lookahead.Type {
+	switch lookahead.Tag {
 	case lexer.TokenInteger:
-		n.Type = NodeInteger
+		n.Tag = NodeInteger
 
 		err := lx.Match(lexer.TokenInteger)
 		if err != nil {

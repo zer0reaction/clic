@@ -6,6 +6,7 @@ import (
 
 type symbol struct {
 	id uint
+
 	variable struct {
 		scopeId uint
 		name    string
@@ -19,6 +20,7 @@ func AddVariable(name string, scopeId uint) (uint, error) {
 		nameMatch := table[i].variable.name == name
 		scopeMatch := table[i].variable.scopeId == scopeId
 		if nameMatch && scopeMatch {
+			// TODO: refactor to panic
 			return 0, errors.New("internal: variable already declared")
 		}
 	}
