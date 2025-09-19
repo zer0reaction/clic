@@ -1,15 +1,20 @@
 package symbol
 
-import ()
+import (
+	"fmt"
+)
 
 type symbol struct {
-	id uint
+	id uint // not an index!
 
 	variable struct {
 		blockId uint
 		name    string
+		offset  uint // subtracted from RBP
 	}
 }
+
+const VariableBytesize = 8
 
 var table []symbol
 
@@ -38,6 +43,25 @@ func AddVariable(name string, blockId uint) uint {
 	table = append(table, s)
 
 	return id
+}
+
+func VariableSetOffset(id uint, offset uint) {
+	for i := 0; i < len(table); i++ {
+		if table[i].id == id {
+			table[i].variable.offset = offset
+			return
+		}
+	}
+	panic(fmt.Sprintf("set offset failed, id: %d", id))
+}
+
+func VariableGetOffset(id uint) uint {
+	for i := 0; i < len(table); i++ {
+		if table[i].id == id {
+			return table[i].variable.offset
+		}
+	}
+	panic("get offset failed")
 }
 
 func LookupVariable(name string, blockId uint) uint {

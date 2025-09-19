@@ -3,10 +3,16 @@ package codegen
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/parser"
+	"github.com/zer0reaction/lisp-go/symbol"
 )
 
-// Scratch registers
+// Scratch registers:
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
+
+const varBytesize uint = 8
+
+// This is really bad.
+var stackOffset uint = 0
 
 func Codegen(root *parser.Node) string {
 	code := ""
@@ -17,20 +23,26 @@ func Codegen(root *parser.Node) string {
 	code += "main:\n"
 	code += "	pushq	%rbp\n"
 	code += "	movq	%rsp, %rbp\n"
-	code += "	/* --------------- */\n"
 
+	tmp := ""
 	for root != nil {
-		code += codegenNode(root, true)
+		tmp += codegenNode(root)
 		root = root.Next
 	}
+	code += fmt.Sprintf("	leaq	-%d(%%rbp), %%rsp\n", stackOffset)
+	code += "	/* --------------- */\n"
+	code += tmp
 
 	code += "	/* --------------- */\n"
+	code += "	movq	%rbp, %rsp\n"
 	code += "	movq	$0, %rax\n"
 	code += "	popq	%rbp\n"
 	code += "	ret\n"
 	return code
 }
 
+// Each variable is int64 (8 bytes).
+// Currently there are no AST checks at all.
 // Operands are pushed in the reverse order, for example:
 //
 // 3 + 4
@@ -38,29 +50,45 @@ func Codegen(root *parser.Node) string {
 // STACK BASE
 // 4 (rval)
 // 3 (lval)
-func codegenNode(n *parser.Node, orphan bool) string {
+func codegenNode(n *parser.Node) string {
 	code := ""
 
-	switch n.Type {
+	switch n.Tag {
+	case parser.NodeBlock:
+		cur := n.Block.Start
+		for cur != nil {
+			code += codegenNode(cur)
+			cur = cur.Next
+		}
+	case parser.NodeVariableDecl:
+		id := n.Variable.TableId
+		symbol.VariableSetOffset(id, stackOffset+varBytesize)
+		stackOffset += varBytesize
+	case parser.NodeVariable:
+		offset := symbol.VariableGetOffset(n.Variable.TableId)
+		code += "	/* Variable */\n"
+		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
+		code += "	pushq	%rax\n"
 	case parser.NodeInteger:
 		code += "	/* Integer */\n"
 		code += fmt.Sprintf("	pushq	$%d\n", n.Integer.Value)
 	case parser.NodeBinOpSum:
-		code += codegenNode(n.BinOp.Rval, false)
-		code += codegenNode(n.BinOp.Lval, false)
+		code += codegenNode(n.BinOp.Rval)
+		code += codegenNode(n.BinOp.Lval)
 
 		code += "	/* BinOpSum */\n"
 		code += "	popq	%rax\n" // lval
 		code += "	popq	%rdi\n" // rval
 		code += "	addq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
+	case parser.NodeBinOpAssign:
+		code += codegenNode(n.BinOp.Rval)
+		code += "	/* BinOpAssign */\n"
+		offset := symbol.VariableGetOffset(n.BinOp.Lval.Variable.TableId)
+		code += "	popq	%rax\n"
+		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
 	default:
 		panic("node type not implemented")
-	}
-
-	if orphan {
-		code += "	/* Pop orphan value */\n"
-		code += "	add	$8, %rsp\n"
 	}
 
 	return code

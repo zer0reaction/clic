@@ -13,8 +13,10 @@ type NodeTag uint
 const (
 	nodeError NodeTag = iota
 	NodeBinOpSum
+	NodeBinOpAssign
 	NodeInteger
 	NodeBlock
+	NodeVariableDecl
 	NodeVariable
 )
 
@@ -98,6 +100,25 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 		}
 		n.BinOp.Lval = lval
 		n.BinOp.Rval = rval
+	case lexer.TokenSet:
+		n.Tag = NodeBinOpAssign
+
+		err := lx.Match(lexer.TokenSet)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: add checks
+		lval, err := parseItem(lx, curBlkId)
+		if err != nil {
+			return nil, err
+		}
+		rval, err := parseItem(lx, curBlkId)
+		if err != nil {
+			return nil, err
+		}
+		n.BinOp.Lval = lval
+		n.BinOp.Rval = rval
 	case lexer.TokenRbrOpen:
 		n.Tag = NodeBlock
 		n.Block.Id = curBlkId + 1
@@ -132,7 +153,7 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 
 		popBlkId()
 	case lexer.TokenLet:
-		n.Tag = NodeVariable
+		n.Tag = NodeVariableDecl
 
 		err := lx.Match(lexer.TokenLet)
 		if err != nil {
