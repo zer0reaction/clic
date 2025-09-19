@@ -29,6 +29,7 @@ type Node struct {
 		Rval *Node
 	}
 	Block struct {
+		Id    uint
 		Start *Node
 	}
 	Variable struct {
@@ -36,7 +37,7 @@ type Node struct {
 	}
 }
 
-func parseList(lx *lexer.Lexer) (*Node, error) {
+func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 	err := lx.Match(lexer.TokenRbrOpen)
 	if err != nil {
 		return nil, err
@@ -59,11 +60,11 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 
 		// TODO: add checks
-		lval, err := parseItem(lx)
+		lval, err := parseItem(lx, curBlkId)
 		if err != nil {
 			return nil, err
 		}
-		rval, err := parseItem(lx)
+		rval, err := parseItem(lx, curBlkId)
 		if err != nil {
 			return nil, err
 		}
@@ -71,11 +72,12 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.BinOp.Rval = rval
 	case lexer.TokenRbrOpen:
 		n.Tag = NodeBlock
+		n.Block.Id = curBlkId + 1
 
 		var tail *Node = nil
 
 		for lookahead.Tag != lexer.TokenRbrClose {
-			blockNode, err := parseList(lx)
+			blockNode, err := parseList(lx, n.Block.Id)
 			if err != nil {
 				return nil, err
 			}
@@ -114,8 +116,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 			return nil, err
 		}
 
-		// TODO: add block ids
-		tableId, err := symbol.AddVariable(t.Data, 0)
+		tableId, err := symbol.AddVariable(t.Data, curBlkId)
 		if err != nil {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
@@ -134,7 +135,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 	return &n, nil
 }
 
-func parseItem(lx *lexer.Lexer) (*Node, error) {
+func parseItem(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 	lookahead, err := lx.PeekToken(0)
 	if err != nil {
 		return nil, err
@@ -158,7 +159,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 
 		n.Integer.Value = value
 	case lexer.TokenRbrOpen:
-		return parseList(lx)
+		return parseList(lx, curBlkId)
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list item",
 			lookahead.Line, lookahead.Column)

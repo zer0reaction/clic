@@ -16,17 +16,22 @@ func main() {
 		`
 (
   (let foo)
+  (
+    (let foo)
+    (let foo)
+  )
 )
-(let foo)
+
+(let bar)
 `
 
 	l.LoadString(program)
 
-	_, err := parser.DebugParseList(&l)
+	_, err := parser.DebugParseList(&l, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = parser.DebugParseList(&l)
+	_, err = parser.DebugParseList(&l, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
