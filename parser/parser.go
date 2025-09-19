@@ -37,6 +37,33 @@ type Node struct {
 	}
 }
 
+var blkIdStack []uint
+
+func pushBlkId(id uint) {
+	for i := 0; i < len(blkIdStack); i++ {
+		if blkIdStack[i] == id {
+			panic("id is already on stack")
+		}
+	}
+	blkIdStack = append(blkIdStack, id)
+}
+
+func popBlkId() {
+	if len(blkIdStack) == 0 {
+		panic("id stack is empty")
+	}
+	blkIdStack = blkIdStack[:len(blkIdStack)-1]
+}
+
+func visible(name string) bool {
+	for i := len(blkIdStack) - 1; i >= 0; i-- {
+		if symbol.IsVariableInBlock(name, blkIdStack[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 	err := lx.Match(lexer.TokenRbrOpen)
 	if err != nil {
@@ -74,6 +101,8 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 		n.Tag = NodeBlock
 		n.Block.Id = curBlkId + 1
 
+		pushBlkId(n.Block.Id)
+
 		var tail *Node = nil
 
 		for lookahead.Tag != lexer.TokenRbrClose {
@@ -99,6 +128,8 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 				return nil, err
 			}
 		}
+
+		popBlkId()
 	case lexer.TokenLet:
 		n.Tag = NodeVariable
 
@@ -116,11 +147,12 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 			return nil, err
 		}
 
-		tableId, err := symbol.AddVariable(t.Data, curBlkId)
-		if err != nil {
+		if symbol.IsVariableInBlock(t.Data, curBlkId) {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
 		}
+
+		tableId := symbol.AddVariable(t.Data, curBlkId)
 		n.Variable.TableId = tableId
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item",
