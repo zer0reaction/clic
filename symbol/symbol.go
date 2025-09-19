@@ -16,8 +16,8 @@ var table []symbol
 func IsVariableInBlock(name string, blockId uint) bool {
 	for i := 0; i < len(table); i++ {
 		nameMatch := (table[i].variable.name == name)
-		scopeMatch := (table[i].variable.blockId == blockId)
-		if nameMatch && scopeMatch {
+		blockMatch := (table[i].variable.blockId == blockId)
+		if nameMatch && blockMatch {
 			return true
 		}
 	}
@@ -38,4 +38,15 @@ func AddVariable(name string, blockId uint) uint {
 	table = append(table, s)
 
 	return id
+}
+
+func LookupVariable(name string, blockId uint) uint {
+	for i := 0; i < len(table); i++ {
+		nameMatch := (table[i].variable.name == name)
+		blockMatch := (table[i].variable.blockId == blockId)
+		if nameMatch && blockMatch {
+			return table[i].id
+		}
+	}
+	panic("lookup failed")
 }

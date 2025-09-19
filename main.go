@@ -16,13 +16,9 @@ func main() {
 		`
 (
   (let foo)
-  (
-    (let foo)
-    (let foo)
-  )
+  (+ foo 4)
 )
-
-(let bar)
+(+ foo 5)
 `
 
 	l.LoadString(program)
