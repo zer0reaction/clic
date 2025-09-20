@@ -1,76 +1,77 @@
 package symbol
 
 import (
-	"fmt"
+	"errors"
 )
 
+type SymbolId int
+type BlockId int
+
+const (
+	SymbolIdNone SymbolId = -1
+	BlockIdNone  BlockId  = -1
+)
+
+type SymbolTag uint
+
+const (
+	SymbolVariable SymbolTag = iota
+)
+
+type Variable struct {
+	BlockId BlockId
+	Name    string
+	Offset  uint // subtracted from RBP
+}
+
 type symbol struct {
-	id uint // not an index!
-
-	variable struct {
-		blockId uint
-		name    string
-		offset  uint // subtracted from RBP
-	}
+	tag      SymbolTag
+	variable Variable
 }
 
-const VariableBytesize = 8
+var table = make(map[SymbolId]symbol)
 
-var table []symbol
-
-func IsVariableInBlock(name string, blockId uint) bool {
-	for i := 0; i < len(table); i++ {
-		nameMatch := (table[i].variable.name == name)
-		blockMatch := (table[i].variable.blockId == blockId)
-		if nameMatch && blockMatch {
-			return true
-		}
-	}
-	return false
-}
-
-func AddVariable(name string, blockId uint) uint {
-	if IsVariableInBlock(name, blockId) {
-		panic("variable already declared")
-	}
-
-	var s symbol
-	id := uint(len(table)) + 1
-
-	s.id = id
-	s.variable.name = name
-	s.variable.blockId = blockId
-	table = append(table, s)
-
+func AddSymbol(tag SymbolTag) SymbolId {
+	s := symbol{tag: tag}
+	id := SymbolId(len(table))
+	table[id] = s
 	return id
 }
 
-func VariableSetOffset(id uint, offset uint) {
-	for i := 0; i < len(table); i++ {
-		if table[i].id == id {
-			table[i].variable.offset = offset
-			return
-		}
+func SetVariable(id SymbolId, v Variable) {
+	s, ok := table[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
 	}
-	panic(fmt.Sprintf("set offset failed, id: %d", id))
+	if s.tag != SymbolVariable {
+		panic("symbol's type is not a variable")
+	}
+
+	s.variable = v
+	table[id] = s
 }
 
-func VariableGetOffset(id uint) uint {
-	for i := 0; i < len(table); i++ {
-		if table[i].id == id {
-			return table[i].variable.offset
-		}
+func GetVariable(id SymbolId) Variable {
+	s, ok := table[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
 	}
-	panic("get offset failed")
+	if s.tag != SymbolVariable {
+		panic("symbol's type is not a variable")
+	}
+
+	return s.variable
 }
 
-func LookupVariable(name string, blockId uint) uint {
-	for i := 0; i < len(table); i++ {
-		nameMatch := (table[i].variable.name == name)
-		blockMatch := (table[i].variable.blockId == blockId)
+func LookupVariable(name string, blockId BlockId) (SymbolId, error) {
+	for id, s := range table {
+		nameMatch := (s.variable.Name == name)
+		blockMatch := (s.variable.BlockId == blockId)
 		if nameMatch && blockMatch {
-			return table[i].id
+			return id, nil
 		}
 	}
-	panic("lookup failed")
+	return SymbolIdNone, errors.New("internal: variable not found")
 }

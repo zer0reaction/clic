@@ -2,8 +2,9 @@ package parser
 
 import (
 	"github.com/zer0reaction/lisp-go/lexer"
+	"github.com/zer0reaction/lisp-go/symbol"
 )
 
-func DebugParseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
+func DebugParseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	return parseList(lx, curBlkId)
 }

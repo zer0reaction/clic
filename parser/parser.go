@@ -32,17 +32,17 @@ type Node struct {
 		Rval *Node
 	}
 	Block struct {
-		Id    uint
+		Id    symbol.BlockId
 		Start *Node
 	}
 	Variable struct {
-		TableId uint
+		TableId symbol.SymbolId
 	}
 }
 
-var blkIdStack = []uint{0}
+var blkIdStack = []symbol.BlockId{0}
 
-func pushBlkId(id uint) {
+func pushBlkId(id symbol.BlockId) {
 	for i := 0; i < len(blkIdStack); i++ {
 		if blkIdStack[i] == id {
 			panic("id is already on stack")
@@ -58,16 +58,17 @@ func popBlkId() {
 	blkIdStack = blkIdStack[:len(blkIdStack)-1]
 }
 
-func resolveVarBlkId(name string) (uint, error) {
+func resolveVar(name string) (symbol.SymbolId, error) {
 	for i := len(blkIdStack) - 1; i >= 0; i-- {
-		if symbol.IsVariableInBlock(name, blkIdStack[i]) {
-			return blkIdStack[i], nil
+		tableId, err := symbol.LookupVariable(name, blkIdStack[i])
+		if err == nil {
+			return tableId, nil
 		}
 	}
-	return 0, errors.New("internal: variable not visible")
+	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
 }
 
-func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
+func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	err := lx.Match(lexer.TokenRbrOpen)
 	if err != nil {
 		return nil, err
@@ -166,11 +167,17 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 		}
 		name := t.Data
 
-		if symbol.IsVariableInBlock(name, curBlkId) {
+		_, err = symbol.LookupVariable(name, curBlkId)
+		if err == nil {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
 		}
-		tableId := symbol.AddVariable(name, curBlkId)
+
+		tableId := symbol.AddSymbol(symbol.SymbolVariable)
+		symbol.SetVariable(tableId, symbol.Variable{
+			Name:    name,
+			BlockId: curBlkId,
+		})
 		n.Variable.TableId = tableId
 
 		err = lx.Match(lexer.TokenIdent)
@@ -190,7 +197,7 @@ func parseList(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 	return &n, nil
 }
 
-func parseItem(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
+func parseItem(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	lookahead, err := lx.PeekToken(0)
 	if err != nil {
 		return nil, err
@@ -216,12 +223,12 @@ func parseItem(lx *lexer.Lexer, curBlkId uint) (*Node, error) {
 		n.Tag = NodeVariable
 		name := lookahead.Data
 
-		blockId, err := resolveVarBlkId(name)
+		tableId, err := resolveVar(name)
 		if err != nil {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope",
 				lookahead.Line, lookahead.Column)
 		}
-		n.Variable.TableId = symbol.LookupVariable(name, blockId)
+		n.Variable.TableId = tableId
 
 		err = lx.Match(lexer.TokenIdent)
 		if err != nil {

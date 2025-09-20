@@ -62,12 +62,18 @@ func codegenNode(n *parser.Node) string {
 		}
 	case parser.NodeVariableDecl:
 		id := n.Variable.TableId
-		symbol.VariableSetOffset(id, stackOffset+varBytesize)
+
+		v := symbol.GetVariable(id)
+		v.Offset = stackOffset + varBytesize
+		symbol.SetVariable(id, v)
+
 		stackOffset += varBytesize
 	case parser.NodeVariable:
-		offset := symbol.VariableGetOffset(n.Variable.TableId)
+		id := n.Variable.TableId
+		v := symbol.GetVariable(id)
+
 		code += "	/* Variable */\n"
-		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
+		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", v.Offset)
 		code += "	pushq	%rax\n"
 	case parser.NodeInteger:
 		code += "	/* Integer */\n"
@@ -82,9 +88,11 @@ func codegenNode(n *parser.Node) string {
 		code += "	addq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
 	case parser.NodeBinOpAssign:
+		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
+
 		code += codegenNode(n.BinOp.Rval)
 		code += "	/* BinOpAssign */\n"
-		offset := symbol.VariableGetOffset(n.BinOp.Lval.Variable.TableId)
+		offset := v.Offset
 		code += "	popq	%rax\n"
 		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
 	default:
