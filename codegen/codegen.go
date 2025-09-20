@@ -88,9 +88,10 @@ func codegenNode(n *parser.Node) string {
 		code += "	addq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
 	case parser.NodeBinOpAssign:
-		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
-
+		code += codegenNode(n.BinOp.Lval) // if it is 'let'
 		code += codegenNode(n.BinOp.Rval)
+
+		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
 		code += "	/* BinOpAssign */\n"
 		offset := v.Offset
 		code += "	popq	%rax\n"

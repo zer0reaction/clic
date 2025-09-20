@@ -15,19 +15,17 @@ func main() {
 
 	program :=
 		`
-((let foo)
- (set foo 34)
+(let foo)
+(set foo 5)
 
- (let bar)
- (set bar 35)
-
- (let res)
- (set res (+ foo bar)))
+(
+  (set (let foo) (+ 3 4))
+)
 `
 
 	l.LoadString(program)
 
-	root, err := parser.DebugParseList(&l, 0)
+	root, err := parser.CreateAST(&l)
 	if err != nil {
 		log.Fatal(err)
 	}

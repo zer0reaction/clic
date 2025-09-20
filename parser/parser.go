@@ -68,6 +68,36 @@ func resolveVar(name string) (symbol.SymbolId, error) {
 	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
 }
 
+func CreateAST(lx *lexer.Lexer) (*Node, error) {
+	var head *Node = nil
+	var tail *Node = nil
+
+	for {
+		t, err := lx.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
+		if t.Tag == lexer.TokenEOF {
+			break
+		}
+
+		n, err := parseList(lx, symbol.BlockId(0))
+		if err != nil {
+			return nil, err
+		}
+
+		if tail == nil {
+			head = n
+			tail = n
+		} else {
+			tail.Next = n
+			tail = tail.Next
+		}
+	}
+
+	return head, nil
+}
+
 func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	err := lx.Match(lexer.TokenRbrOpen)
 	if err != nil {
