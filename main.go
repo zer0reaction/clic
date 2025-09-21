@@ -15,12 +15,8 @@ func main() {
 
 	program :=
 		`
-(let foo)
-(set foo 5)
-
-(
-  (set (let foo) (+ 3 4))
-)
+(exfun print_u64)
+(print_u64 (+ 34 35))
 `
 
 	l.LoadString(program)

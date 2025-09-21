@@ -18,6 +18,7 @@ const (
 	TokenEOF
 	TokenLet
 	TokenSet
+	TokenExfun
 	TokenIdent
 	tokenCount
 )
@@ -49,9 +50,10 @@ var tokenPatterns = []struct {
 	{TokenInteger, regexp.MustCompile(`^-?[1-9]+[0-9]*`), true},
 	{TokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{TokenSet, regexp.MustCompile(`^\bset\b`), false},
+	{TokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
 
 	// Must be after keywords!
-	{TokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z_]*`), true},
+	{TokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
 var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)

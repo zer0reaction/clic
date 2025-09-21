@@ -18,6 +18,8 @@ const (
 	NodeBlock
 	NodeVariableDecl
 	NodeVariable
+	NodeFunEx
+	NodeFunCall
 )
 
 type Node struct {
@@ -37,6 +39,10 @@ type Node struct {
 	}
 	Variable struct {
 		TableId symbol.SymbolId
+	}
+	Function struct {
+		TableId  symbol.SymbolId
+		ArgStart *Node
 	}
 }
 
@@ -144,6 +150,7 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 
 		var tail *Node = nil
 
+		// TODO: refactor in a separate function
 		for lookahead.Tag != lexer.TokenRbrClose {
 			blockNode, err := parseList(lx, n.Block.Id)
 			if err != nil {
@@ -181,6 +188,10 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
+		err = lx.Match(lexer.TokenIdent)
+		if err != nil {
+			return nil, err
+		}
 		name := t.Data
 
 		_, err = symbol.LookupVariable(name, curBlkId)
@@ -195,10 +206,83 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			BlockId: curBlkId,
 		})
 		n.Variable.TableId = tableId
+	case lexer.TokenExfun:
+		n.Tag = NodeFunEx
 
+		err := lx.Match(lexer.TokenExfun)
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := lx.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
 		err = lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
+		}
+
+		name := t.Data
+
+		_, err = symbol.LookupFunction(name)
+		if err == nil {
+			return nil, fmt.Errorf(":%d:%d: error: function is already declared",
+				t.Line, t.Column)
+		}
+
+		tableId := symbol.AddSymbol(symbol.SymbolFunction)
+		symbol.SetFunction(tableId, symbol.Function{
+			Name: name,
+		})
+		n.Function.TableId = tableId
+	case lexer.TokenIdent:
+		n.Tag = NodeFunCall
+
+		t, err := lx.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
+		err = lx.Match(lexer.TokenIdent)
+		if err != nil {
+			return nil, err
+		}
+
+		name := t.Data
+
+		tableId, err := symbol.LookupFunction(name)
+		if err != nil {
+			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
+				t.Line, t.Column)
+		}
+
+		n.Function.TableId = tableId
+
+		var tail *Node = nil
+
+		// TODO: refactor in a separate function
+		for lookahead.Tag != lexer.TokenRbrClose {
+			argNode, err := parseItem(lx, n.Block.Id)
+			if err != nil {
+				return nil, err
+			}
+
+			if tail == nil && n.Function.ArgStart != nil {
+				panic("arg start is not nil")
+			}
+
+			if tail == nil {
+				n.Function.ArgStart = argNode
+				tail = argNode
+			} else {
+				tail.Next = argNode
+				tail = tail.Next
+			}
+
+			lookahead, err = lx.PeekToken(0)
+			if err != nil {
+				return nil, err
+			}
 		}
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item",

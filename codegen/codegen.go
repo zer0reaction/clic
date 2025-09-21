@@ -9,26 +9,35 @@ import (
 // Scratch registers:
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
 
+// Argument registers:
+// rdi, rsi, rdx, rcx, r8d, r9d
+
+var argRegisters = [...]string{"rdi", "rsi", "rdx", "rcx", "r8d", "r9d"}
+
 const varBytesize uint = 8
 
 // This is really bad.
 var stackOffset uint = 0
 
+var externDecls = ""
+
 func Codegen(root *parser.Node) string {
 	code := ""
-
-	code += ".section .text\n"
-	code += ".globl main\n"
-	code += "\n"
-	code += "main:\n"
-	code += "	pushq	%rbp\n"
-	code += "	movq	%rsp, %rbp\n"
 
 	tmp := ""
 	for root != nil {
 		tmp += codegenNode(root)
 		root = root.Next
 	}
+
+	code += ".section .text\n"
+	code += ".globl main\n"
+	code += externDecls
+	code += "\n"
+	code += "main:\n"
+	code += "	pushq	%rbp\n"
+	code += "	movq	%rsp, %rbp\n"
+
 	code += fmt.Sprintf("	leaq	-%d(%%rbp), %%rsp\n", stackOffset)
 	code += "	/* --------------- */\n"
 	code += tmp
@@ -96,6 +105,28 @@ func codegenNode(n *parser.Node) string {
 		offset := v.Offset
 		code += "	popq	%rax\n"
 		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
+	case parser.NodeFunEx:
+		f := symbol.GetFunction(n.Function.TableId)
+		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
+	case parser.NodeFunCall:
+		cur := n.Function.ArgStart
+		argCount := 0
+
+		code += "	/* NodeFunCall */\n"
+
+		for cur != nil {
+			if argCount >= len(argRegisters) {
+				panic("arguments on stack are not supported yet")
+			}
+			code += codegenNode(cur)
+			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[argCount])
+			argCount++
+			cur = cur.Next
+		}
+
+		f := symbol.GetFunction(n.Function.TableId)
+		code += fmt.Sprintf("	call %s\n", f.Name)
+		code += "	pushq	%rax\n"
 	default:
 		panic("node type not implemented")
 	}

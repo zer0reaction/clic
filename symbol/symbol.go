@@ -16,6 +16,7 @@ type SymbolTag uint
 
 const (
 	SymbolVariable SymbolTag = iota
+	SymbolFunction
 )
 
 type Variable struct {
@@ -24,9 +25,14 @@ type Variable struct {
 	Offset  uint // subtracted from RBP
 }
 
+type Function struct {
+	Name string
+}
+
 type symbol struct {
 	tag      SymbolTag
 	variable Variable
+	function Function
 }
 
 var table = make(map[SymbolId]symbol)
@@ -74,4 +80,41 @@ func LookupVariable(name string, blockId BlockId) (SymbolId, error) {
 		}
 	}
 	return SymbolIdNone, errors.New("internal: variable not found")
+}
+
+func SetFunction(id SymbolId, f Function) {
+	s, ok := table[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
+	}
+	if s.tag != SymbolFunction {
+		panic("symbol's type is not a function")
+	}
+
+	s.function = f
+	table[id] = s
+}
+
+func GetFunction(id SymbolId) Function {
+	s, ok := table[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
+	}
+	if s.tag != SymbolFunction {
+		panic("symbol's type is not a function")
+	}
+
+	return s.function
+}
+
+func LookupFunction(name string) (SymbolId, error) {
+	for id, s := range table {
+		nameMatch := (s.function.Name == name)
+		if nameMatch {
+			return id, nil
+		}
+	}
+	return SymbolIdNone, errors.New("internal: function not found")
 }
