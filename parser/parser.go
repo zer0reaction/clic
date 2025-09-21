@@ -120,17 +120,10 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		// TODO: add checks
-		lval, err := parseItem(lx, curBlkId)
+		err = parseBinOp(&n, lx, curBlkId)
 		if err != nil {
 			return nil, err
 		}
-		rval, err := parseItem(lx, curBlkId)
-		if err != nil {
-			return nil, err
-		}
-		n.BinOp.Lval = lval
-		n.BinOp.Rval = rval
 	case lexer.TokenSet:
 		n.Tag = NodeBinOpAssign
 
@@ -139,17 +132,10 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		// TODO: add checks
-		lval, err := parseItem(lx, curBlkId)
+		err = parseBinOp(&n, lx, curBlkId)
 		if err != nil {
 			return nil, err
 		}
-		rval, err := parseItem(lx, curBlkId)
-		if err != nil {
-			return nil, err
-		}
-		n.BinOp.Lval = lval
-		n.BinOp.Rval = rval
 	case lexer.TokenRbrOpen:
 		n.Tag = NodeBlock
 		n.Block.Id = curBlkId + 1
@@ -225,6 +211,22 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	}
 
 	return &n, nil
+}
+
+func parseBinOp(n *Node, lx *lexer.Lexer, curBlkId symbol.BlockId) error {
+	// TODO: add checks
+	lval, err := parseItem(lx, curBlkId)
+	if err != nil {
+		return err
+	}
+	rval, err := parseItem(lx, curBlkId)
+	if err != nil {
+		return err
+	}
+	n.BinOp.Lval = lval
+	n.BinOp.Rval = rval
+
+	return nil
 }
 
 func parseItem(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
