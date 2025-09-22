@@ -130,10 +130,10 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-	case lexer.TokenSet:
+	case lexer.TokenColEq:
 		n.Tag = NodeBinOpAssign
 
-		err := lx.Match(lexer.TokenSet)
+		err := lx.Match(lexer.TokenColEq)
 		if err != nil {
 			return nil, err
 		}
