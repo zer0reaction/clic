@@ -125,7 +125,7 @@ func codegenNode(n *parser.Node) string {
 		}
 
 		f := symbol.GetFunction(n.Function.TableId)
-		code += fmt.Sprintf("	call %s\n", f.Name)
+		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
 	default:
 		panic("node type not implemented")
