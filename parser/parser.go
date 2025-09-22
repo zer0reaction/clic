@@ -148,32 +148,11 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 
 		pushBlkId(n.Block.Id)
 
-		var tail *Node = nil
-
-		// TODO: refactor in a separate function
-		for lookahead.Tag != lexer.TokenRbrClose {
-			blockNode, err := parseList(lx, n.Block.Id)
-			if err != nil {
-				return nil, err
-			}
-
-			if tail == nil && n.Block.Start != nil {
-				panic("block start is not nil")
-			}
-
-			if tail == nil {
-				n.Block.Start = blockNode
-				tail = blockNode
-			} else {
-				tail.Next = blockNode
-				tail = tail.Next
-			}
-
-			lookahead, err = lx.PeekToken(0)
-			if err != nil {
-				return nil, err
-			}
+		items, err := collectItems(lx, n.Block.Id)
+		if err != nil {
+			return nil, err
 		}
+		n.Block.Start = items
 
 		popBlkId()
 	case lexer.TokenLet:
@@ -247,7 +226,6 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		name := t.Data
 
 		tableId, err := symbol.LookupFunction(name)
@@ -255,35 +233,13 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
 				t.Line, t.Column)
 		}
-
 		n.Function.TableId = tableId
 
-		var tail *Node = nil
-
-		// TODO: refactor in a separate function
-		for lookahead.Tag != lexer.TokenRbrClose {
-			argNode, err := parseItem(lx, n.Block.Id)
-			if err != nil {
-				return nil, err
-			}
-
-			if tail == nil && n.Function.ArgStart != nil {
-				panic("arg start is not nil")
-			}
-
-			if tail == nil {
-				n.Function.ArgStart = argNode
-				tail = argNode
-			} else {
-				tail.Next = argNode
-				tail = tail.Next
-			}
-
-			lookahead, err = lx.PeekToken(0)
-			if err != nil {
-				return nil, err
-			}
+		items, err := collectItems(lx, curBlkId)
+		if err != nil {
+			return nil, err
 		}
+		n.Function.ArgStart = items
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item",
 			lookahead.Line, lookahead.Column)
@@ -298,7 +254,6 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 }
 
 func parseBinOp(n *Node, lx *lexer.Lexer, curBlkId symbol.BlockId) error {
-	// TODO: add checks
 	lval, err := parseItem(lx, curBlkId)
 	if err != nil {
 		return err
@@ -311,6 +266,38 @@ func parseBinOp(n *Node, lx *lexer.Lexer, curBlkId symbol.BlockId) error {
 	n.BinOp.Rval = rval
 
 	return nil
+}
+
+func collectItems(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
+	lookahead, err := lx.PeekToken(0)
+	if err != nil {
+		return nil, err
+	}
+
+	var head *Node = nil
+	var tail *Node = nil
+
+	for lookahead.Tag != lexer.TokenRbrClose {
+		item, err := parseItem(lx, curBlkId)
+		if err != nil {
+			return nil, err
+		}
+
+		if tail == nil {
+			head = item
+			tail = item
+		} else {
+			tail.Next = item
+			tail = tail.Next
+		}
+
+		lookahead, err = lx.PeekToken(0)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return head, nil
 }
 
 func parseItem(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
