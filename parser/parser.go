@@ -47,10 +47,10 @@ type Node struct {
 		Start *Node
 	}
 	Variable struct {
-		TableId symbol.SymbolId
+		Id symbol.SymbolId
 	}
 	Function struct {
-		TableId  symbol.SymbolId
+		Id       symbol.SymbolId
 		ArgStart *Node
 	}
 }
@@ -75,9 +75,9 @@ func popBlkId() {
 
 func resolveVar(name string) (symbol.SymbolId, error) {
 	for i := len(blkIdStack) - 1; i >= 0; i-- {
-		tableId, err := symbol.LookupVariable(name, blkIdStack[i])
+		id, err := symbol.LookupVariable(name, blkIdStack[i])
 		if err == nil {
-			return tableId, nil
+			return id, nil
 		}
 	}
 	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
@@ -203,12 +203,12 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 				t.Line, t.Column)
 		}
 
-		tableId := symbol.AddSymbol(symbol.SymbolVariable)
-		symbol.SetVariable(tableId, symbol.Variable{
+		id := symbol.AddSymbol(symbol.SymbolVariable)
+		symbol.SetVariable(id, symbol.Variable{
 			Name:    name,
 			BlockId: curBlkId,
 		})
-		n.Variable.TableId = tableId
+		n.Variable.Id = id
 	case lexer.TokenExfun:
 		n.Tag = NodeFunEx
 
@@ -234,11 +234,11 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 				t.Line, t.Column)
 		}
 
-		tableId := symbol.AddSymbol(symbol.SymbolFunction)
-		symbol.SetFunction(tableId, symbol.Function{
+		id := symbol.AddSymbol(symbol.SymbolFunction)
+		symbol.SetFunction(id, symbol.Function{
 			Name: name,
 		})
-		n.Function.TableId = tableId
+		n.Function.Id = id
 	case lexer.TokenIdent:
 		n.Tag = NodeFunCall
 
@@ -252,12 +252,12 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		}
 		name := t.Data
 
-		tableId, err := symbol.LookupFunction(name)
+		id, err := symbol.LookupFunction(name)
 		if err != nil {
 			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
 				t.Line, t.Column)
 		}
-		n.Function.TableId = tableId
+		n.Function.Id = id
 
 		items, err := collectItems(lx, curBlkId)
 		if err != nil {
@@ -350,12 +350,12 @@ func parseItem(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		n.Tag = NodeVariable
 		name := lookahead.Data
 
-		tableId, err := resolveVar(name)
+		id, err := resolveVar(name)
 		if err != nil {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope",
 				lookahead.Line, lookahead.Column)
 		}
-		n.Variable.TableId = tableId
+		n.Variable.Id = id
 
 		err = lx.Match(lexer.TokenIdent)
 		if err != nil {

@@ -71,7 +71,7 @@ func codegenNode(n *parser.Node) string {
 			cur = cur.Next
 		}
 	case parser.NodeVariableDecl:
-		id := n.Variable.TableId
+		id := n.Variable.Id
 
 		v := symbol.GetVariable(id)
 		v.Offset = stackOffset + varBytesize
@@ -79,7 +79,7 @@ func codegenNode(n *parser.Node) string {
 
 		stackOffset += varBytesize
 	case parser.NodeVariable:
-		id := n.Variable.TableId
+		id := n.Variable.Id
 		v := symbol.GetVariable(id)
 
 		code += "	/* Variable */\n"
@@ -91,7 +91,7 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeBinOp:
 		code += codegenBinOp(n)
 	case parser.NodeFunEx:
-		f := symbol.GetFunction(n.Function.TableId)
+		f := symbol.GetFunction(n.Function.Id)
 		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
 	case parser.NodeFunCall:
 		cur := n.Function.ArgStart
@@ -109,7 +109,7 @@ func codegenNode(n *parser.Node) string {
 			cur = cur.Next
 		}
 
-		f := symbol.GetFunction(n.Function.TableId)
+		f := symbol.GetFunction(n.Function.Id)
 		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
 	default:
@@ -143,7 +143,7 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	subq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
 	case parser.BinOpAssign:
-		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
+		v := symbol.GetVariable(n.BinOp.Lval.Variable.Id)
 		offset := v.Offset
 
 		code += rval
