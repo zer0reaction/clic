@@ -5,6 +5,6 @@ import (
 	"github.com/zer0reaction/lisp-go/symbol"
 )
 
-func DebugParseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
-	return parseList(lx, curBlkId)
+func DebugParseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
+	return parseList(lx, blockId)
 }
