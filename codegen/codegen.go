@@ -52,6 +52,7 @@ func Codegen(root *parser.Node) string {
 
 // Each variable is int64 (8 bytes).
 // Currently there are no AST checks at all.
+//
 // Operands are pushed in the reverse order, for example:
 //
 // 3 + 4
@@ -87,24 +88,8 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeInteger:
 		code += "	/* Integer */\n"
 		code += fmt.Sprintf("	pushq	$%d\n", n.Integer.Value)
-	case parser.NodeBinOpSum:
-		code += codegenNode(n.BinOp.Rval)
-		code += codegenNode(n.BinOp.Lval)
-
-		code += "	/* BinOpSum */\n"
-		code += "	popq	%rax\n" // lval
-		code += "	popq	%rdi\n" // rval
-		code += "	addq	%rdi, %rax\n"
-		code += "	pushq	%rax\n"
-	case parser.NodeBinOpAssign:
-		code += codegenNode(n.BinOp.Lval) // if it is 'let'
-		code += codegenNode(n.BinOp.Rval)
-
-		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
-		code += "	/* BinOpAssign */\n"
-		offset := v.Offset
-		code += "	popq	%rax\n"
-		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
+	case parser.NodeBinOp:
+		code += codegenBinOp(n)
 	case parser.NodeFunEx:
 		f := symbol.GetFunction(n.Function.TableId)
 		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
@@ -127,6 +112,36 @@ func codegenNode(n *parser.Node) string {
 		f := symbol.GetFunction(n.Function.TableId)
 		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
+	default:
+		panic("node type not implemented")
+	}
+
+	return code
+}
+
+func codegenBinOp(n *parser.Node) string {
+	code := ""
+
+	lval := codegenNode(n.BinOp.Lval)
+	rval := codegenNode(n.BinOp.Rval)
+
+	switch n.BinOp.Tag {
+	case parser.BinOpSum:
+		code += rval
+		code += lval
+		code += "	/* BinOpSum */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	addq	%rdi, %rax\n"
+		code += "	pushq	%rax\n"
+	case parser.BinOpAssign:
+		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
+		offset := v.Offset
+
+		code += rval
+		code += "	/* BinOpAssign */\n"
+		code += "	popq	%rax\n"
+		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
 	default:
 		panic("node type not implemented")
 	}

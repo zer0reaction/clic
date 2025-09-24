@@ -12,14 +12,21 @@ type NodeTag uint
 
 const (
 	nodeError NodeTag = iota
-	NodeBinOpSum
-	NodeBinOpAssign
+	NodeBinOp
 	NodeInteger
 	NodeBlock
 	NodeVariableDecl
 	NodeVariable
 	NodeFunEx
 	NodeFunCall
+)
+
+type BinOpTag uint
+
+const (
+	binOpError BinOpTag = iota
+	BinOpSum
+	BinOpAssign
 )
 
 type Node struct {
@@ -30,6 +37,7 @@ type Node struct {
 		Value int64
 	}
 	BinOp struct {
+		Tag  BinOpTag
 		Lval *Node
 		Rval *Node
 	}
@@ -119,7 +127,8 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 
 	switch lookahead.Tag {
 	case lexer.TokenPlus:
-		n.Tag = NodeBinOpSum
+		n.Tag = NodeBinOp
+		n.BinOp.Tag = BinOpSum
 
 		err := lx.Match(lexer.TokenPlus)
 		if err != nil {
@@ -131,7 +140,8 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 	case lexer.TokenColEq:
-		n.Tag = NodeBinOpAssign
+		n.Tag = NodeBinOp
+		n.BinOp.Tag = BinOpAssign
 
 		err := lx.Match(lexer.TokenColEq)
 		if err != nil {
