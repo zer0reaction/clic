@@ -17,16 +17,23 @@ func main() {
 		`
 (exfun print)
 
-(:= (let x) -5)
+(:= (let x) (- 1000 -7))
 
-( (print x)
+(
+	(print x)
+	(:= x (- x 6))
 
-  ( (let x)
-    (:= x 34)
-    (print x) )
+	(
+		(let x)
+		(:= x 34)
+		(:= x (- x 6))
+		(print x)
+	)
 
-  (:= (let x) 7)
-  (print x)      )
+	(:= (let x) 7)
+	(print x)
+	(:= x (- x 10000))
+)
 
 (print x)
 `

@@ -46,15 +46,19 @@ var tokenPatterns = []struct {
 	pattern   *regexp.Regexp
 	needsData bool
 }{
-	{TokenTag('('), regexp.MustCompile(`^\(`), false},
-	{TokenTag(')'), regexp.MustCompile(`^\)`), false},
-	{TokenTag('+'), regexp.MustCompile(`^\+`), false},
-	{TokenInteger, regexp.MustCompile(`^-?[1-9]+[0-9]*`), true},
+	// Order matters
+
 	{TokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{TokenColEq, regexp.MustCompile(`^:=`), false},
 	{TokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
+	{TokenTag('('), regexp.MustCompile(`^\(`), false},
+	{TokenTag(')'), regexp.MustCompile(`^\)`), false},
 
-	// Must be after keywords!
+	{TokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
+
+	{TokenTag('+'), regexp.MustCompile(`^\+`), false},
+	{TokenTag('-'), regexp.MustCompile(`^\-`), false},
+
 	{TokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
 var newlinePattern = regexp.MustCompile(`^\n+`)

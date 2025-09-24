@@ -134,6 +134,14 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	popq	%rdi\n" // rval
 		code += "	addq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
+	case parser.BinOpSub:
+		code += rval
+		code += lval
+		code += "	/* BinOpSub */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	subq	%rdi, %rax\n"
+		code += "	pushq	%rax\n"
 	case parser.BinOpAssign:
 		v := symbol.GetVariable(n.BinOp.Lval.Variable.TableId)
 		offset := v.Offset

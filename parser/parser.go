@@ -26,6 +26,7 @@ type BinOpTag uint
 const (
 	binOpError BinOpTag = iota
 	BinOpSum
+	BinOpSub
 	BinOpAssign
 )
 
@@ -131,6 +132,19 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		n.BinOp.Tag = BinOpSum
 
 		err := lx.Match(lexer.TokenTag('+'))
+		if err != nil {
+			return nil, err
+		}
+
+		err = parseBinOp(&n, lx, curBlkId)
+		if err != nil {
+			return nil, err
+		}
+	case lexer.TokenTag('-'):
+		n.Tag = NodeBinOp
+		n.BinOp.Tag = BinOpSub
+
+		err := lx.Match(lexer.TokenTag('-'))
 		if err != nil {
 			return nil, err
 		}
