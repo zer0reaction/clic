@@ -10,17 +10,19 @@ const lexerRbufferSize uint = 16
 type TokenTag uint
 
 const (
-	tokenError TokenTag = iota
-	TokenRbrOpen
-	TokenRbrClose
-	TokenPlus
-	TokenInteger
-	TokenEOF
+	// 0-127 are ASCII chars
+	tokenError TokenTag = (128 + iota)
+
+	// Keywords
 	TokenLet
-	TokenColEq
 	TokenExfun
+	TokenColEq
+
+	// Other terminals
+	TokenInteger
 	TokenIdent
-	tokenCount
+
+	TokenEOF
 )
 
 type Token struct {
@@ -44,9 +46,9 @@ var tokenPatterns = []struct {
 	pattern   *regexp.Regexp
 	needsData bool
 }{
-	{TokenRbrOpen, regexp.MustCompile(`^\(`), false},
-	{TokenRbrClose, regexp.MustCompile(`^\)`), false},
-	{TokenPlus, regexp.MustCompile(`^\+`), false},
+	{TokenTag('('), regexp.MustCompile(`^\(`), false},
+	{TokenTag(')'), regexp.MustCompile(`^\)`), false},
+	{TokenTag('+'), regexp.MustCompile(`^\+`), false},
 	{TokenInteger, regexp.MustCompile(`^-?[1-9]+[0-9]*`), true},
 	{TokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{TokenColEq, regexp.MustCompile(`^:=`), false},

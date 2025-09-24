@@ -113,7 +113,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 }
 
 func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
-	err := lx.Match(lexer.TokenRbrOpen)
+	err := lx.Match(lexer.TokenTag('('))
 	if err != nil {
 		return nil, err
 	}
@@ -126,11 +126,11 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	n := Node{}
 
 	switch lookahead.Tag {
-	case lexer.TokenPlus:
+	case lexer.TokenTag('+'):
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSum
 
-		err := lx.Match(lexer.TokenPlus)
+		err := lx.Match(lexer.TokenTag('+'))
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +152,7 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-	case lexer.TokenRbrOpen:
+	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
 		n.Block.Id = curBlkId + 1
 
@@ -255,7 +255,7 @@ func parseList(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 			lookahead.Line, lookahead.Column)
 	}
 
-	err = lx.Match(lexer.TokenRbrClose)
+	err = lx.Match(lexer.TokenTag(')'))
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func collectItems(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 	var head *Node = nil
 	var tail *Node = nil
 
-	for lookahead.Tag != lexer.TokenRbrClose {
+	for lookahead.Tag != lexer.TokenTag(')') {
 		item, err := parseItem(lx, curBlkId)
 		if err != nil {
 			return nil, err
@@ -347,7 +347,7 @@ func parseItem(lx *lexer.Lexer, curBlkId symbol.BlockId) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-	case lexer.TokenRbrOpen:
+	case lexer.TokenTag('('):
 		return parseList(lx, curBlkId)
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list item",
