@@ -10,9 +10,9 @@ import (
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
 
 // Argument registers:
-// rdi, rsi, rdx, rcx, r8d, r9d
+// rdi, rsi, rdx, rcx, r8, r9
 
-var argRegisters = [...]string{"rdi", "rsi", "rdx", "rcx", "r8d", "r9d"}
+var argRegisters = [...]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 
 const varBytesize uint = 8
 
