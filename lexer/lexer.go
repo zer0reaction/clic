@@ -77,17 +77,6 @@ func (l *Lexer) LoadString(data string) {
 	l.readInd = 0
 }
 
-func (l *Lexer) popToken() *Token {
-	if l.readInd == l.writeInd {
-		panic("ring buffer underflow")
-	}
-
-	t := &l.rbuffer[l.readInd]
-	l.readInd = (l.readInd + 1) % lexerRbufferSize
-
-	return t
-}
-
 func (l *Lexer) consumeToken() {
 	if l.readInd == l.writeInd {
 		panic("ring buffer underflow")
@@ -180,19 +169,19 @@ func (l *Lexer) GetCachedCount() uint {
 	}
 }
 
-func (l *Lexer) PeekToken(offset uint) (*Token, error) {
+func (l *Lexer) Peek(offset uint) (Token, error) {
 	for l.GetCachedCount() <= offset {
 		err := l.cacheToken()
 		if err != nil {
-			return nil, err
+			return Token{}, err
 		}
 	}
 
-	return &l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
+	return l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }
 
 func (l *Lexer) Match(tag TokenTag) error {
-	token, err := l.PeekToken(0)
+	token, err := l.Peek(0)
 	if err != nil {
 		return err
 	}
@@ -205,4 +194,20 @@ func (l *Lexer) Match(tag TokenTag) error {
 
 	l.consumeToken()
 	return nil
+}
+
+func (l *Lexer) Chop(tag TokenTag) (Token, error) {
+	token, err := l.Peek(0)
+	if err != nil {
+		return Token{}, err
+	}
+
+	if token.Tag != tag {
+		// TODO: add displaying names
+		return Token{}, fmt.Errorf(":%d:%d: error: expected token [%d]",
+			token.Line, token.Column, tag)
+	}
+
+	l.consumeToken()
+	return token, nil
 }

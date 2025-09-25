@@ -88,7 +88,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 	var tail *Node = nil
 
 	for {
-		t, err := lx.PeekToken(0)
+		t, err := lx.Peek(0)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +119,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		return nil, err
 	}
 
-	lookahead, err := lx.PeekToken(0)
+	lookahead, err := lx.Peek(0)
 	if err != nil {
 		return nil, err
 	}
@@ -187,11 +187,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		t, err := lx.PeekToken(0)
-		if err != nil {
-			return nil, err
-		}
-		err = lx.Match(lexer.TokenIdent)
+		t, err := lx.Chop(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -217,15 +213,10 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		t, err := lx.PeekToken(0)
+		t, err := lx.Chop(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
-		err = lx.Match(lexer.TokenIdent)
-		if err != nil {
-			return nil, err
-		}
-
 		name := t.Data
 
 		_, err = symbol.LookupFunction(name)
@@ -242,11 +233,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	case lexer.TokenIdent:
 		n.Tag = NodeFunCall
 
-		t, err := lx.PeekToken(0)
-		if err != nil {
-			return nil, err
-		}
-		err = lx.Match(lexer.TokenIdent)
+		t, err := lx.Chop(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +280,7 @@ func parseBinOp(n *Node, lx *lexer.Lexer, blockId symbol.BlockId) error {
 }
 
 func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
-	lookahead, err := lx.PeekToken(0)
+	lookahead, err := lx.Peek(0)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +302,7 @@ func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			tail = tail.Next
 		}
 
-		lookahead, err = lx.PeekToken(0)
+		lookahead, err = lx.Peek(0)
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +312,7 @@ func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 }
 
 func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
-	lookahead, err := lx.PeekToken(0)
+	lookahead, err := lx.Peek(0)
 	if err != nil {
 		return nil, err
 	}
