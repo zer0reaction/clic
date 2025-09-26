@@ -17,6 +17,8 @@ const (
 	TokenLet
 	TokenExfun
 	TokenColEq
+	TokenS64
+	TokenU64
 
 	// Other terminals
 	TokenInteger
@@ -51,6 +53,8 @@ var tokenPatterns = []struct {
 	{TokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{TokenColEq, regexp.MustCompile(`^:=`), false},
 	{TokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
+	{TokenS64, regexp.MustCompile(`^\bs64\b`), false},
+	{TokenU64, regexp.MustCompile(`^\bu64\b`), false},
 	{TokenTag('('), regexp.MustCompile(`^\(`), false},
 	{TokenTag(')'), regexp.MustCompile(`^\)`), false},
 

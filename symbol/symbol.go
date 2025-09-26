@@ -7,6 +7,7 @@ import (
 type SymbolId int
 type BlockId int
 
+// TODO: set block and symbol id none to 1
 const (
 	SymbolIdNone SymbolId = -1
 	BlockIdNone  BlockId  = -1
@@ -15,13 +16,23 @@ const (
 type SymbolTag uint
 
 const (
-	SymbolVariable SymbolTag = iota
+	symbolError SymbolTag = iota
+	SymbolVariable
 	SymbolFunction
+)
+
+type ValueType uint
+
+const (
+	valueError ValueType = iota
+	ValueS64
+	ValueU64
 )
 
 type Variable struct {
 	BlockId BlockId
 	Name    string
+	Type    ValueType
 	Offset  uint // subtracted from RBP
 }
 

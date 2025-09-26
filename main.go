@@ -17,25 +17,22 @@ func main() {
 		`
 (exfun print)
 
-(:= (let x) (- 1000 -7))
+(let s64 foo)
+(:= foo 25)
 
-(
-	(print x)
-	(:= x (- x 6))
+(let s64 bar)
+(:= bar (+ foo 234))
 
-	(
-		(let x)
-		(:= x 34)
-		(:= x (- x 6))
-		(print x)
-	)
+(let s64 i)
+(:= i 0)
 
-	(:= (let x) 7)
-	(print x)
-	(:= x (- x 10000))
-)
-
-(print x)
+(print i)
+(:= i (+ i 1))
+(print i)
+(:= i (+ i 1))
+(print i)
+(:= i (+ i 1))
+(print i)
 `
 
 	l.LoadString(program)

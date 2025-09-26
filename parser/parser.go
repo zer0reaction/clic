@@ -36,6 +36,7 @@ type Node struct {
 
 	Integer struct {
 		Value int64
+		Type  symbol.ValueType
 	}
 	BinOp struct {
 		Tag  BinOpTag
@@ -56,6 +57,20 @@ type Node struct {
 }
 
 var blockStack = []symbol.BlockId{0}
+
+func (n *Node) GetType() symbol.ValueType {
+	switch n.Tag {
+	case NodeInteger:
+		return n.Integer.Type
+	case NodeVariable:
+		v := symbol.GetVariable(n.Variable.Id)
+		return v.Type
+	case NodeBinOp:
+		return n.BinOp.Rval.GetType()
+	default:
+		panic("node does not have a type")
+	}
+}
 
 func pushBlock(id symbol.BlockId) {
 	for i := 0; i < len(blockStack); i++ {
@@ -131,7 +146,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSum
 
-		err := lx.Match(lexer.TokenTag('+'))
+		t, err := lx.Chop(lexer.TokenTag('+'))
 		if err != nil {
 			return nil, err
 		}
@@ -139,12 +154,17 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		err = parseBinOp(&n, lx, blockId)
 		if err != nil {
 			return nil, err
+		}
+
+		if !isBinOpValid(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+				t.Line, t.Column)
 		}
 	case lexer.TokenTag('-'):
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSub
 
-		err := lx.Match(lexer.TokenTag('-'))
+		t, err := lx.Chop(lexer.TokenTag('-'))
 		if err != nil {
 			return nil, err
 		}
@@ -152,12 +172,17 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		err = parseBinOp(&n, lx, blockId)
 		if err != nil {
 			return nil, err
+		}
+
+		if !isBinOpValid(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+				t.Line, t.Column)
 		}
 	case lexer.TokenColEq:
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpAssign
 
-		err := lx.Match(lexer.TokenColEq)
+		t, err := lx.Chop(lexer.TokenColEq)
 		if err != nil {
 			return nil, err
 		}
@@ -165,6 +190,11 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		err = parseBinOp(&n, lx, blockId)
 		if err != nil {
 			return nil, err
+		}
+
+		if !isBinOpValid(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+				t.Line, t.Column)
 		}
 	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
@@ -181,29 +211,52 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		popBlock()
 	case lexer.TokenLet:
 		n.Tag = NodeVariableDecl
+		// TODO: initialized wrong (global scope)
+		v := symbol.Variable{}
 
 		err := lx.Match(lexer.TokenLet)
 		if err != nil {
 			return nil, err
 		}
 
+		tp, err := lx.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+
+		switch tp.Tag {
+		case lexer.TokenS64:
+			v.Type = symbol.ValueS64
+			err := lx.Match(lexer.TokenS64)
+			if err != nil {
+				return nil, err
+			}
+		case lexer.TokenU64:
+			v.Type = symbol.ValueU64
+			err := lx.Match(lexer.TokenU64)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf(":%d:%d: error: expected type",
+				tp.Line, tp.Column)
+		}
+
 		t, err := lx.Chop(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
-		name := t.Data
+		v.Name = t.Data
 
-		_, err = symbol.LookupVariable(name, blockId)
+		_, err = symbol.LookupVariable(v.Name, blockId)
 		if err == nil {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
 		}
+		v.BlockId = blockId
 
 		id := symbol.AddSymbol(symbol.SymbolVariable)
-		symbol.SetVariable(id, symbol.Variable{
-			Name:    name,
-			BlockId: blockId,
-		})
+		symbol.SetVariable(id, v)
 		n.Variable.Id = id
 	case lexer.TokenExfun:
 		n.Tag = NodeFunEx
@@ -322,6 +375,8 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	switch lookahead.Tag {
 	case lexer.TokenInteger:
 		n.Tag = NodeInteger
+		// TODO: this is not clear, add a cast?
+		n.Integer.Type = symbol.ValueS64
 
 		value, err := strconv.ParseInt(lookahead.Data, 0, 64)
 		if err != nil {
@@ -356,4 +411,20 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	}
 
 	return &n, nil
+}
+
+// TODO: add verbose error messages
+func isBinOpValid(n *Node) bool {
+	if n.Tag != NodeBinOp {
+		panic("node is not a binary operator")
+	}
+
+	lvalType := n.BinOp.Lval.GetType()
+	rvalType := n.BinOp.Rval.GetType()
+
+	if n.BinOp.Tag == BinOpAssign && n.BinOp.Lval.Tag != NodeVariable {
+		return false
+	}
+
+	return (lvalType == rvalType)
 }
