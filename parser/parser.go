@@ -68,8 +68,8 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		if !isBinOpValid(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+		if !binOpTypeCheck(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
 				t.Line, t.Column)
 		}
 	case lexer.TokenTag('-'):
@@ -86,8 +86,8 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		if !isBinOpValid(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+		if !binOpTypeCheck(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
 				t.Line, t.Column)
 		}
 	case lexer.TokenColEq:
@@ -104,8 +104,13 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		if !isBinOpValid(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: invalid binary operation",
+		if n.BinOp.Lval.Tag != NodeVariable {
+			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable",
+				t.Line, t.Column)
+		}
+
+		if !binOpTypeCheck(&n) {
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
 				t.Line, t.Column)
 		}
 	case lexer.TokenTag('('):
@@ -350,18 +355,13 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	return &n, nil
 }
 
-// TODO: add verbose error messages
-func isBinOpValid(n *Node) bool {
+func binOpTypeCheck(n *Node) bool {
 	if n.Tag != NodeBinOp {
 		panic("node is not a binary operator")
 	}
 
 	lvalType := n.BinOp.Lval.GetType()
 	rvalType := n.BinOp.Rval.GetType()
-
-	if n.BinOp.Tag == BinOpAssign && n.BinOp.Lval.Tag != NodeVariable {
-		return false
-	}
 
 	return (lvalType == rvalType)
 }
