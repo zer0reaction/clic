@@ -15,13 +15,11 @@ func main() {
 
 	program :=
 		`
-(exfun print)
+(exfun print_s64)
 
 (let s64 foo)
-(:= foo 100)
-(:= foo (+ foo 50))
-
-(print foo)
+(:= foo 1337)
+(print_s64 foo)
 `
 
 	l.LoadString(program)
