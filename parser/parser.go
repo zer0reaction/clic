@@ -8,95 +8,7 @@ import (
 	"strconv"
 )
 
-type NodeTag uint
-
-const (
-	nodeError NodeTag = iota
-	NodeBinOp
-	NodeInteger
-	NodeBlock
-	NodeVariableDecl
-	NodeVariable
-	NodeFunEx
-	NodeFunCall
-)
-
-type BinOpTag uint
-
-const (
-	binOpError BinOpTag = iota
-	BinOpSum
-	BinOpSub
-	BinOpAssign
-)
-
-type Node struct {
-	Tag  NodeTag
-	Next *Node
-
-	Integer struct {
-		Value int64
-		Type  symbol.ValueType
-	}
-	BinOp struct {
-		Tag  BinOpTag
-		Lval *Node
-		Rval *Node
-	}
-	Block struct {
-		Id    symbol.BlockId
-		Start *Node
-	}
-	Variable struct {
-		Id symbol.SymbolId
-	}
-	Function struct {
-		Id       symbol.SymbolId
-		ArgStart *Node
-	}
-}
-
 var blockStack = []symbol.BlockId{0}
-
-func (n *Node) GetType() symbol.ValueType {
-	switch n.Tag {
-	case NodeInteger:
-		return n.Integer.Type
-	case NodeVariable:
-		v := symbol.GetVariable(n.Variable.Id)
-		return v.Type
-	case NodeBinOp:
-		return n.BinOp.Rval.GetType()
-	default:
-		panic("node does not have a type")
-	}
-}
-
-func pushBlock(id symbol.BlockId) {
-	for i := 0; i < len(blockStack); i++ {
-		if blockStack[i] == id {
-			panic("id is already on stack")
-		}
-	}
-	blockStack = append(blockStack, id)
-}
-
-func popBlock() {
-	if len(blockStack) == 1 {
-		panic("trying to pop global block id")
-	}
-	blockStack = blockStack[:len(blockStack)-1]
-}
-
-func resolveVar(name string) (symbol.SymbolId, error) {
-	for i := len(blockStack) - 1; i >= 0; i-- {
-		id, err := symbol.LookupVariable(name, blockStack[i])
-		if err == nil {
-			return id, nil
-		}
-	}
-	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
-}
 
 func CreateAST(lx *lexer.Lexer) (*Node, error) {
 	var head *Node = nil
@@ -315,6 +227,32 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	}
 
 	return &n, nil
+}
+
+func pushBlock(id symbol.BlockId) {
+	for i := 0; i < len(blockStack); i++ {
+		if blockStack[i] == id {
+			panic("id is already on stack")
+		}
+	}
+	blockStack = append(blockStack, id)
+}
+
+func popBlock() {
+	if len(blockStack) == 1 {
+		panic("trying to pop global block id")
+	}
+	blockStack = blockStack[:len(blockStack)-1]
+}
+
+func resolveVar(name string) (symbol.SymbolId, error) {
+	for i := len(blockStack) - 1; i >= 0; i-- {
+		id, err := symbol.LookupVariable(name, blockStack[i])
+		if err == nil {
+			return id, nil
+		}
+	}
+	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
 }
 
 func parseBinOp(n *Node, lx *lexer.Lexer, blockId symbol.BlockId) error {
