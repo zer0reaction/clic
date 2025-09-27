@@ -164,8 +164,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		}
 		v.Name = t.Data
 
-		_, err = symbol.LookupVariable(v.Name, blockId)
-		if err == nil {
+		if symbol.VariableExists(v.Name, blockId) {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
 		}

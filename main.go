@@ -18,7 +18,10 @@ func main() {
 (exfun print)
 
 (let s64 foo)
-(:= foo (+ foo 34))
+(:= foo 100)
+(:= foo (+ foo 50))
+
+(print foo)
 `
 
 	l.LoadString(program)

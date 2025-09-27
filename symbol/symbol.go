@@ -92,6 +92,17 @@ func LookupVariable(name string, blockId BlockId) (SymbolId, error) {
 	return 0, errors.New("internal: variable not found")
 }
 
+func VariableExists(name string, blockId BlockId) bool {
+	for _, s := range table {
+		nameMatch := (s.variable.Name == name)
+		blockMatch := (s.variable.BlockId == blockId)
+		if nameMatch && blockMatch {
+			return true
+		}
+	}
+	return false
+}
+
 func SetFunction(id SymbolId, f Function) {
 	s, ok := table[id]
 
