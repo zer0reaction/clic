@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-var blockStack = []symbol.BlockId{0}
+var blockStack = []symbol.BlockId{symbol.BlockIdGlobal}
 
 func CreateAST(lx *lexer.Lexer) (*Node, error) {
 	var head *Node = nil
@@ -23,7 +23,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 			break
 		}
 
-		n, err := parseList(lx, symbol.BlockId(0))
+		n, err := parseList(lx, symbol.BlockIdGlobal)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +123,6 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		popBlock()
 	case lexer.TokenLet:
 		n.Tag = NodeVariableDecl
-		// TODO: initialized wrong (global scope)
 		v := symbol.Variable{}
 
 		err := lx.Match(lexer.TokenLet)
@@ -252,7 +251,7 @@ func resolveVar(name string) (symbol.SymbolId, error) {
 			return id, nil
 		}
 	}
-	return symbol.SymbolIdNone, errors.New("internal: variable not visible")
+	return 0, errors.New("internal: variable not visible")
 }
 
 func parseBinOp(n *Node, lx *lexer.Lexer, blockId symbol.BlockId) error {

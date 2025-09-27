@@ -4,14 +4,13 @@ import (
 	"errors"
 )
 
+// 0 = bug
 type SymbolId int
+
 type BlockId int
 
-// TODO: set block and symbol id none to 1
-const (
-	SymbolIdNone SymbolId = -1
-	BlockIdNone  BlockId  = -1
-)
+// 0 = bug
+const BlockIdGlobal BlockId = 1
 
 type SymbolTag uint
 
@@ -50,7 +49,7 @@ var table = make(map[SymbolId]symbol)
 
 func AddSymbol(tag SymbolTag) SymbolId {
 	s := symbol{tag: tag}
-	id := SymbolId(len(table))
+	id := SymbolId(len(table) + 1)
 	table[id] = s
 	return id
 }
@@ -90,7 +89,7 @@ func LookupVariable(name string, blockId BlockId) (SymbolId, error) {
 			return id, nil
 		}
 	}
-	return SymbolIdNone, errors.New("internal: variable not found")
+	return 0, errors.New("internal: variable not found")
 }
 
 func SetFunction(id SymbolId, f Function) {
@@ -127,5 +126,5 @@ func LookupFunction(name string) (SymbolId, error) {
 			return id, nil
 		}
 	}
-	return SymbolIdNone, errors.New("internal: function not found")
+	return 0, errors.New("internal: function not found")
 }
