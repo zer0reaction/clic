@@ -3,7 +3,7 @@
 package parser
 
 import (
-	"github.com/zer0reaction/lisp-go/symbol"
+	sym "github.com/zer0reaction/lisp-go/symbol"
 )
 
 type NodeTag uint
@@ -34,7 +34,7 @@ type Node struct {
 
 	Integer struct {
 		Value int64
-		Type  symbol.ValueType
+		Type  sym.ValueType
 	}
 	BinOp struct {
 		Tag  BinOpTag
@@ -42,24 +42,23 @@ type Node struct {
 		Rval *Node
 	}
 	Block struct {
-		Id    symbol.BlockId
 		Start *Node
 	}
 	Variable struct {
-		Id symbol.SymbolId
+		Id sym.SymbolId
 	}
 	Function struct {
-		Id       symbol.SymbolId
+		Id       sym.SymbolId
 		ArgStart *Node
 	}
 }
 
-func (n *Node) GetType() symbol.ValueType {
+func (n *Node) GetType() sym.ValueType {
 	switch n.Tag {
 	case NodeInteger:
 		return n.Integer.Type
 	case NodeVariable:
-		v := symbol.GetVariable(n.Variable.Id)
+		v := sym.GetVariable(n.Variable.Id)
 		return v.Type
 	case NodeBinOp:
 		return n.BinOp.Rval.GetType()

@@ -15,11 +15,19 @@ func main() {
 
 	program :=
 		`
-(exfun print_s64)
+		(exfun print_s64)
 
-(let s64 foo)
-(:= foo 1337)
-(print_s64 foo)
+		(let s64 foo)
+		(:= foo 1337)
+		(
+			(print_s64 foo)
+			(let s64 foo)
+			(:= foo 1234)
+			(print_s64 foo)
+		)
+		(:= foo 456)
+
+		(print_s64 foo)
 `
 
 	l.LoadString(program)

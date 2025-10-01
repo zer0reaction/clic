@@ -3,7 +3,7 @@ package codegen
 import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/parser"
-	"github.com/zer0reaction/lisp-go/symbol"
+	sym "github.com/zer0reaction/lisp-go/symbol"
 )
 
 // Scratch registers:
@@ -73,14 +73,14 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeVariableDecl:
 		id := n.Variable.Id
 
-		v := symbol.GetVariable(id)
+		v := sym.GetVariable(id)
 		v.Offset = stackOffset + varBytesize
-		symbol.SetVariable(id, v)
+		sym.SetVariable(id, v)
 
 		stackOffset += varBytesize
 	case parser.NodeVariable:
 		id := n.Variable.Id
-		v := symbol.GetVariable(id)
+		v := sym.GetVariable(id)
 
 		code += "	/* Variable */\n"
 		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", v.Offset)
@@ -91,7 +91,7 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeBinOp:
 		code += codegenBinOp(n)
 	case parser.NodeFunEx:
-		f := symbol.GetFunction(n.Function.Id)
+		f := sym.GetFunction(n.Function.Id)
 		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
 	case parser.NodeFunCall:
 		cur := n.Function.ArgStart
@@ -109,7 +109,7 @@ func codegenNode(n *parser.Node) string {
 			cur = cur.Next
 		}
 
-		f := symbol.GetFunction(n.Function.Id)
+		f := sym.GetFunction(n.Function.Id)
 		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
 	default:
@@ -143,7 +143,7 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	subq	%rdi, %rax\n"
 		code += "	pushq	%rax\n"
 	case parser.BinOpAssign:
-		v := symbol.GetVariable(n.BinOp.Lval.Variable.Id)
+		v := sym.GetVariable(n.BinOp.Lval.Variable.Id)
 		offset := v.Offset
 
 		code += rval

@@ -1,14 +1,11 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 	"github.com/zer0reaction/lisp-go/lexer"
-	"github.com/zer0reaction/lisp-go/symbol"
+	sym "github.com/zer0reaction/lisp-go/symbol"
 	"strconv"
 )
-
-var blockStack = []symbol.BlockId{symbol.BlockIdGlobal}
 
 func CreateAST(lx *lexer.Lexer) (*Node, error) {
 	var head *Node = nil
@@ -23,7 +20,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 			break
 		}
 
-		n, err := parseList(lx, symbol.BlockIdGlobal)
+		n, err := parseList(lx)
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +37,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 	return head, nil
 }
 
-func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
+func parseList(lx *lexer.Lexer) (*Node, error) {
 	err := lx.Match(lexer.TokenTag('('))
 	if err != nil {
 		return nil, err
@@ -63,7 +60,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		err = parseBinOp(&n, lx, blockId)
+		err = parseBinOp(&n, lx)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +78,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		err = parseBinOp(&n, lx, blockId)
+		err = parseBinOp(&n, lx)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +96,7 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 
-		err = parseBinOp(&n, lx, blockId)
+		err = parseBinOp(&n, lx)
 		if err != nil {
 			return nil, err
 		}
@@ -115,20 +112,19 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		}
 	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
-		n.Block.Id = blockId + 1
 
-		pushBlock(n.Block.Id)
+		sym.PushBlock()
 
-		items, err := collectItems(lx, n.Block.Id)
+		items, err := collectItems(lx)
 		if err != nil {
 			return nil, err
 		}
 		n.Block.Start = items
 
-		popBlock()
+		sym.PopBlock()
 	case lexer.TokenLet:
 		n.Tag = NodeVariableDecl
-		v := symbol.Variable{}
+		v := sym.Variable{}
 
 		err := lx.Match(lexer.TokenLet)
 		if err != nil {
@@ -142,13 +138,13 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 
 		switch tp.Tag {
 		case lexer.TokenS64:
-			v.Type = symbol.ValueS64
+			v.Type = sym.ValueS64
 			err := lx.Match(lexer.TokenS64)
 			if err != nil {
 				return nil, err
 			}
 		case lexer.TokenU64:
-			v.Type = symbol.ValueU64
+			v.Type = sym.ValueU64
 			err := lx.Match(lexer.TokenU64)
 			if err != nil {
 				return nil, err
@@ -164,14 +160,13 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		}
 		v.Name = t.Data
 
-		if symbol.VariableExists(v.Name, blockId) {
+		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
 			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
 				t.Line, t.Column)
 		}
-		v.BlockId = blockId
 
-		id := symbol.AddSymbol(symbol.SymbolVariable)
-		symbol.SetVariable(id, v)
+		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
+		sym.SetVariable(id, v)
 		n.Variable.Id = id
 	case lexer.TokenExfun:
 		n.Tag = NodeFunEx
@@ -187,14 +182,13 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		}
 		name := t.Data
 
-		_, err = symbol.LookupFunction(name)
-		if err == nil {
+		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
 			return nil, fmt.Errorf(":%d:%d: error: function is already declared",
 				t.Line, t.Column)
 		}
 
-		id := symbol.AddSymbol(symbol.SymbolFunction)
-		symbol.SetFunction(id, symbol.Function{
+		id := sym.AddSymbol(name, sym.SymbolFunction)
+		sym.SetFunction(id, sym.Function{
 			Name: name,
 		})
 		n.Function.Id = id
@@ -207,14 +201,14 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		}
 		name := t.Data
 
-		id, err := symbol.LookupFunction(name)
-		if err != nil {
+		id := sym.LookupGlobal(name, sym.SymbolFunction)
+		if id == sym.SymbolIdNone {
 			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
 				t.Line, t.Column)
 		}
 		n.Function.Id = id
 
-		items, err := collectItems(lx, blockId)
+		items, err := collectItems(lx)
 		if err != nil {
 			return nil, err
 		}
@@ -232,38 +226,12 @@ func parseList(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	return &n, nil
 }
 
-func pushBlock(id symbol.BlockId) {
-	for i := 0; i < len(blockStack); i++ {
-		if blockStack[i] == id {
-			panic("id is already on stack")
-		}
-	}
-	blockStack = append(blockStack, id)
-}
-
-func popBlock() {
-	if len(blockStack) == 1 {
-		panic("trying to pop global block id")
-	}
-	blockStack = blockStack[:len(blockStack)-1]
-}
-
-func resolveVar(name string) (symbol.SymbolId, error) {
-	for i := len(blockStack) - 1; i >= 0; i-- {
-		id, err := symbol.LookupVariable(name, blockStack[i])
-		if err == nil {
-			return id, nil
-		}
-	}
-	return 0, errors.New("internal: variable not visible")
-}
-
-func parseBinOp(n *Node, lx *lexer.Lexer, blockId symbol.BlockId) error {
-	lval, err := parseItem(lx, blockId)
+func parseBinOp(n *Node, lx *lexer.Lexer) error {
+	lval, err := parseItem(lx)
 	if err != nil {
 		return err
 	}
-	rval, err := parseItem(lx, blockId)
+	rval, err := parseItem(lx)
 	if err != nil {
 		return err
 	}
@@ -273,7 +241,7 @@ func parseBinOp(n *Node, lx *lexer.Lexer, blockId symbol.BlockId) error {
 	return nil
 }
 
-func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
+func collectItems(lx *lexer.Lexer) (*Node, error) {
 	lookahead, err := lx.Peek(0)
 	if err != nil {
 		return nil, err
@@ -283,7 +251,7 @@ func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	var tail *Node = nil
 
 	for lookahead.Tag != lexer.TokenTag(')') {
-		item, err := parseItem(lx, blockId)
+		item, err := parseItem(lx)
 		if err != nil {
 			return nil, err
 		}
@@ -305,7 +273,7 @@ func collectItems(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	return head, nil
 }
 
-func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
+func parseItem(lx *lexer.Lexer) (*Node, error) {
 	lookahead, err := lx.Peek(0)
 	if err != nil {
 		return nil, err
@@ -317,7 +285,7 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 	case lexer.TokenInteger:
 		n.Tag = NodeInteger
 		// TODO: this is not clear, add a cast?
-		n.Integer.Type = symbol.ValueS64
+		n.Integer.Type = sym.ValueS64
 
 		value, err := strconv.ParseInt(lookahead.Data, 0, 64)
 		if err != nil {
@@ -333,8 +301,8 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 		n.Tag = NodeVariable
 		name := lookahead.Data
 
-		id, err := resolveVar(name)
-		if err != nil {
+		id := sym.LookupGlobal(name, sym.SymbolVariable)
+		if id == sym.SymbolIdNone {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope",
 				lookahead.Line, lookahead.Column)
 		}
@@ -345,7 +313,7 @@ func parseItem(lx *lexer.Lexer, blockId symbol.BlockId) (*Node, error) {
 			return nil, err
 		}
 	case lexer.TokenTag('('):
-		return parseList(lx, blockId)
+		return parseList(lx)
 	default:
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list item",
 			lookahead.Line, lookahead.Column)

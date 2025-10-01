@@ -1,16 +1,10 @@
 package symbol
 
-import (
-	"errors"
+type SymbolId uint
+
+const (
+	SymbolIdNone SymbolId = 0
 )
-
-// 0 = bug
-type SymbolId int
-
-type BlockId int
-
-// 0 = bug
-const BlockIdGlobal BlockId = 1
 
 type SymbolTag uint
 
@@ -29,10 +23,9 @@ const (
 )
 
 type Variable struct {
-	BlockId BlockId
-	Name    string
-	Type    ValueType
-	Offset  uint // subtracted from RBP
+	Name   string
+	Type   ValueType
+	Offset uint // subtracted from RBP
 }
 
 type Function struct {
@@ -45,17 +38,88 @@ type symbol struct {
 	function Function
 }
 
-var table = make(map[SymbolId]symbol)
+type table struct {
+	prev *table
+	data map[string]SymbolId
+}
 
-func AddSymbol(tag SymbolTag) SymbolId {
+var current = &table{
+	prev: nil,
+	data: make(map[string]SymbolId),
+}
+var storage = make(map[SymbolId]symbol)
+
+func PushBlock() {
+	current = &table{
+		prev: current,
+		data: make(map[string]SymbolId),
+	}
+}
+
+func PopBlock() {
+	if current.prev == nil {
+		panic("popping global block table")
+	}
+	current = current.prev
+}
+
+func AddSymbol(name string, tag SymbolTag) SymbolId {
+	_, ok := current.data[name]
+	if ok {
+		panic("symbol already exists in the current block")
+	}
+
 	s := symbol{tag: tag}
-	id := SymbolId(len(table) + 1)
-	table[id] = s
+	id := SymbolId(len(storage) + 1)
+
+	storage[id] = s
+	current.data[name] = id
+
+	return id
+}
+
+func LookupGlobal(name string, tag SymbolTag) SymbolId {
+	ptr := current
+
+	for ptr != nil {
+		id, ok := ptr.data[name]
+		if !ok {
+			ptr = ptr.prev
+			continue
+		}
+
+		s, ok := storage[id]
+		if !ok {
+			panic("symbol not found")
+		}
+		// TODO: is this the right thing to do?
+		if s.tag != tag {
+			return SymbolIdNone
+		}
+		return id
+	}
+	return SymbolIdNone
+}
+
+func LookupInBlock(name string, tag SymbolTag) SymbolId {
+	id, ok := current.data[name]
+	if !ok {
+		return SymbolIdNone
+	}
+
+	s, ok := storage[id]
+	if !ok {
+		panic("symbol not found")
+	}
+	// TODO: is this the right thing to do?
+	if s.tag != tag {
+		return SymbolIdNone
+	}
 	return id
 }
 
 func SetVariable(id SymbolId, v Variable) {
-	s, ok := table[id]
+	s, ok := storage[id]
 
 	if !ok {
 		panic("symbol doesn't exist")
@@ -65,11 +129,11 @@ func SetVariable(id SymbolId, v Variable) {
 	}
 
 	s.variable = v
-	table[id] = s
+	storage[id] = s
 }
 
 func GetVariable(id SymbolId) Variable {
-	s, ok := table[id]
+	s, ok := storage[id]
 
 	if !ok {
 		panic("symbol doesn't exist")
@@ -81,30 +145,8 @@ func GetVariable(id SymbolId) Variable {
 	return s.variable
 }
 
-func LookupVariable(name string, blockId BlockId) (SymbolId, error) {
-	for id, s := range table {
-		nameMatch := (s.variable.Name == name)
-		blockMatch := (s.variable.BlockId == blockId)
-		if nameMatch && blockMatch {
-			return id, nil
-		}
-	}
-	return 0, errors.New("internal: variable not found")
-}
-
-func VariableExists(name string, blockId BlockId) bool {
-	for _, s := range table {
-		nameMatch := (s.variable.Name == name)
-		blockMatch := (s.variable.BlockId == blockId)
-		if nameMatch && blockMatch {
-			return true
-		}
-	}
-	return false
-}
-
 func SetFunction(id SymbolId, f Function) {
-	s, ok := table[id]
+	s, ok := storage[id]
 
 	if !ok {
 		panic("symbol doesn't exist")
@@ -114,11 +156,11 @@ func SetFunction(id SymbolId, f Function) {
 	}
 
 	s.function = f
-	table[id] = s
+	storage[id] = s
 }
 
 func GetFunction(id SymbolId) Function {
-	s, ok := table[id]
+	s, ok := storage[id]
 
 	if !ok {
 		panic("symbol doesn't exist")
@@ -128,14 +170,4 @@ func GetFunction(id SymbolId) Function {
 	}
 
 	return s.function
-}
-
-func LookupFunction(name string) (SymbolId, error) {
-	for id, s := range table {
-		nameMatch := (s.function.Name == name)
-		if nameMatch {
-			return id, nil
-		}
-	}
-	return 0, errors.New("internal: function not found")
 }
