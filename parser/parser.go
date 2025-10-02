@@ -66,8 +66,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
 		}
 	case lexer.TokenTag('-'):
 		n.Tag = NodeBinOp
@@ -84,8 +83,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
 		}
 	case lexer.TokenColEq:
 		n.Tag = NodeBinOp
@@ -102,13 +100,11 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 
 		if n.BinOp.Lval.Tag != NodeVariable {
-			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", t.Line, t.Column)
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
 		}
 	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
@@ -150,8 +146,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf(":%d:%d: error: expected type",
-				tp.Line, tp.Column)
+			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
 		}
 
 		t, err := lx.Chop(lexer.TokenIdent)
@@ -161,8 +156,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		v.Name = t.Data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block", t.Line, t.Column)
 		}
 
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
@@ -183,8 +177,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		name := t.Data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: function is already declared",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: function is already declared", t.Line, t.Column)
 		}
 
 		id := sym.AddSymbol(name, sym.SymbolFunction)
@@ -203,8 +196,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 		id := sym.LookupGlobal(name, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
-				t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: function is not declared", t.Line, t.Column)
 		}
 		n.Id = id
 
@@ -214,8 +206,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 		n.Function.ArgStart = items
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item",
-			lookahead.Line, lookahead.Column)
+		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", lookahead.Line, lookahead.Column)
 	}
 
 	err = lx.Match(lexer.TokenTag(')'))
@@ -303,8 +294,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 
 		id := sym.LookupGlobal(name, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope",
-				lookahead.Line, lookahead.Column)
+			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope", lookahead.Line, lookahead.Column)
 		}
 		n.Id = id
 
@@ -315,8 +305,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 	case lexer.TokenTag('('):
 		return parseList(lx)
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list item",
-			lookahead.Line, lookahead.Column)
+		return nil, fmt.Errorf(":%d:%d: error: incorrect list item", lookahead.Line, lookahead.Column)
 	}
 
 	return &n, nil
