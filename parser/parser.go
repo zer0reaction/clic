@@ -52,50 +52,23 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 	switch lookahead.Tag {
 	case lexer.TokenTag('+'):
-		lx.Discard()
-
-		n.Tag = NodeBinOp
-		n.BinOp.Tag = BinOpSum
-
-		err = parseBinOp(&n, lx)
+		err = parseBinOp(&n, lx, BinOpSum)
 		if err != nil {
 			return nil, err
-		}
-
-		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
 		}
 	case lexer.TokenTag('-'):
-		lx.Discard()
-
-		n.Tag = NodeBinOp
-		n.BinOp.Tag = BinOpSub
-
-		err = parseBinOp(&n, lx)
+		err = parseBinOp(&n, lx, BinOpSub)
 		if err != nil {
 			return nil, err
 		}
-
-		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
-		}
 	case lexer.TokenColEq:
-		lx.Discard()
-
-		n.Tag = NodeBinOp
-		n.BinOp.Tag = BinOpAssign
-
-		err = parseBinOp(&n, lx)
+		err = parseBinOp(&n, lx, BinOpAssign)
 		if err != nil {
 			return nil, err
 		}
 
 		if n.BinOp.Lval.Tag != NodeVariable {
 			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", lookahead.Line, lookahead.Column)
-		}
-
-		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
 		}
 	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
@@ -192,7 +165,15 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 	return &n, nil
 }
 
-func parseBinOp(n *Node, lx *lexer.Lexer) error {
+func parseBinOp(n *Node, lx *lexer.Lexer, tag BinOpTag) error {
+	t, err := lx.Consume()
+	if err != nil {
+		return err
+	}
+
+	n.Tag = NodeBinOp
+	n.BinOp.Tag = tag
+
 	lval, err := parseItem(lx)
 	if err != nil {
 		return err
@@ -203,6 +184,12 @@ func parseBinOp(n *Node, lx *lexer.Lexer) error {
 	}
 	n.BinOp.Lval = lval
 	n.BinOp.Rval = rval
+
+	lvalType := n.BinOp.Lval.GetType()
+	rvalType := n.BinOp.Rval.GetType()
+	if lvalType != rvalType {
+		return fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
+	}
 
 	return nil
 }
@@ -281,15 +268,4 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 	}
 
 	return &n, nil
-}
-
-func binOpTypeCheck(n *Node) bool {
-	if n.Tag != NodeBinOp {
-		panic("node is not a binary operator")
-	}
-
-	lvalType := n.BinOp.Lval.GetType()
-	rvalType := n.BinOp.Rval.GetType()
-
-	return (lvalType == rvalType)
 }
