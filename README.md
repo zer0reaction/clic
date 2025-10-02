@@ -15,6 +15,12 @@ change at any time. Do not expect much.
 The final goal is to create an interesting language with unique
 features and self-host the compiler.
 
+## Usage
+
+```cmd
+go run main.go --help
+```
+
 ## Features
 
 ### Linking with C funcitons:
@@ -35,6 +41,10 @@ void print_s64(int64_t n)
 {
 	printf("%ld\n", n);
 }
+```
+
+```cmd
+go run main.go -bf "extern.c" <file>
 ```
 
 ### Strong static type system:
