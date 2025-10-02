@@ -30,8 +30,9 @@ func main() {
 
 	l := lexer.Lexer{}
 	l.LoadString(string(data))
+	p := parser.New(&l)
 
-	root, err := parser.CreateAST(&l)
+	root, err := p.CreateAST()
 	if err != nil {
 		fmt.Printf("%s%s\n", input, err)
 		os.Exit(1)
