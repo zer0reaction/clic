@@ -38,7 +38,7 @@ func CreateAST(lx *lexer.Lexer) (*Node, error) {
 }
 
 func parseList(lx *lexer.Lexer) (*Node, error) {
-	err := lx.Match(lexer.TokenTag('('))
+	_, err := lx.Match(lexer.TokenTag('('))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSum
 
-		t, err := lx.Chop(lexer.TokenTag('+'))
+		t, err := lx.Match(lexer.TokenTag('+'))
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSub
 
-		t, err := lx.Chop(lexer.TokenTag('-'))
+		t, err := lx.Match(lexer.TokenTag('-'))
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +89,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpAssign
 
-		t, err := lx.Chop(lexer.TokenColEq)
+		t, err := lx.Match(lexer.TokenColEq)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +122,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		err := lx.Match(lexer.TokenLet)
+		_, err := lx.Match(lexer.TokenLet)
 		if err != nil {
 			return nil, err
 		}
@@ -135,13 +135,13 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		switch tp.Tag {
 		case lexer.TokenS64:
 			v.Type = sym.ValueS64
-			err := lx.Match(lexer.TokenS64)
+			_, err := lx.Match(lexer.TokenS64)
 			if err != nil {
 				return nil, err
 			}
 		case lexer.TokenU64:
 			v.Type = sym.ValueU64
-			err := lx.Match(lexer.TokenU64)
+			_, err := lx.Match(lexer.TokenU64)
 			if err != nil {
 				return nil, err
 			}
@@ -149,7 +149,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
 		}
 
-		t, err := lx.Chop(lexer.TokenIdent)
+		t, err := lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -165,12 +165,12 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 	case lexer.TokenExfun:
 		n.Tag = NodeFunEx
 
-		err := lx.Match(lexer.TokenExfun)
+		_, err := lx.Match(lexer.TokenExfun)
 		if err != nil {
 			return nil, err
 		}
 
-		t, err := lx.Chop(lexer.TokenIdent)
+		t, err := lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 	case lexer.TokenIdent:
 		n.Tag = NodeFunCall
 
-		t, err := lx.Chop(lexer.TokenIdent)
+		t, err := lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +209,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", lookahead.Line, lookahead.Column)
 	}
 
-	err = lx.Match(lexer.TokenTag(')'))
+	_, err = lx.Match(lexer.TokenTag(')'))
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 		}
 		n.Integer.Value = value
 
-		err = lx.Match(lexer.TokenInteger)
+		_, err = lx.Match(lexer.TokenInteger)
 		if err != nil {
 			return nil, err
 		}
@@ -298,7 +298,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 		}
 		n.Id = id
 
-		err = lx.Match(lexer.TokenIdent)
+		_, err = lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}

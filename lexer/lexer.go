@@ -184,23 +184,7 @@ func (l *Lexer) Peek(offset uint) (Token, error) {
 	return l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
 }
 
-func (l *Lexer) Match(tag TokenTag) error {
-	token, err := l.Peek(0)
-	if err != nil {
-		return err
-	}
-
-	if token.Tag != tag {
-		// TODO: add displaying names
-		return fmt.Errorf(":%d:%d: error: expected token [%d]",
-			token.Line, token.Column, tag)
-	}
-
-	l.consumeToken()
-	return nil
-}
-
-func (l *Lexer) Chop(tag TokenTag) (Token, error) {
+func (l *Lexer) Match(tag TokenTag) (Token, error) {
 	token, err := l.Peek(0)
 	if err != nil {
 		return Token{}, err
@@ -212,6 +196,15 @@ func (l *Lexer) Chop(tag TokenTag) (Token, error) {
 			token.Line, token.Column, tag)
 	}
 
+	l.consumeToken()
+	return token, nil
+}
+
+func (l *Lexer) Consume() (Token, error) {
+	token, err := l.Peek(0)
+	if err != nil {
+		return Token{}, err
+	}
 	l.consumeToken()
 	return token, nil
 }
