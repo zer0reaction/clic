@@ -167,7 +167,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
 		sym.SetVariable(id, v)
-		n.Variable.Id = id
+		n.Id = id
 	case lexer.TokenExfun:
 		n.Tag = NodeFunEx
 
@@ -191,7 +191,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		sym.SetFunction(id, sym.Function{
 			Name: name,
 		})
-		n.Function.Id = id
+		n.Id = id
 	case lexer.TokenIdent:
 		n.Tag = NodeFunCall
 
@@ -206,7 +206,7 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: function is not declared",
 				t.Line, t.Column)
 		}
-		n.Function.Id = id
+		n.Id = id
 
 		items, err := collectItems(lx)
 		if err != nil {
@@ -306,7 +306,7 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope",
 				lookahead.Line, lookahead.Column)
 		}
-		n.Variable.Id = id
+		n.Id = id
 
 		err = lx.Match(lexer.TokenIdent)
 		if err != nil {

@@ -31,6 +31,7 @@ const (
 type Node struct {
 	Tag  NodeTag
 	Next *Node
+	Id   sym.SymbolId
 
 	Integer struct {
 		Value int64
@@ -44,11 +45,7 @@ type Node struct {
 	Block struct {
 		Start *Node
 	}
-	Variable struct {
-		Id sym.SymbolId
-	}
 	Function struct {
-		Id       sym.SymbolId
 		ArgStart *Node
 	}
 }
@@ -58,7 +55,7 @@ func (n *Node) GetType() sym.ValueType {
 	case NodeInteger:
 		return n.Integer.Type
 	case NodeVariable:
-		v := sym.GetVariable(n.Variable.Id)
+		v := sym.GetVariable(n.Id)
 		return v.Type
 	case NodeBinOp:
 		return n.BinOp.Rval.GetType()
