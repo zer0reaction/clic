@@ -1,41 +1,63 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/zer0reaction/lisp-go/codegen"
-	// "github.com/zer0reaction/lisp-go/symbol"
 	"github.com/zer0reaction/lisp-go/lexer"
 	"github.com/zer0reaction/lisp-go/parser"
-	"log"
+	"os"
+	"os/exec"
 )
 
 func main() {
+	output := flag.String("o", "out", "Output executable file path")
+	backend := flag.String("b", "gcc", "Compiler backend")
+	backendFlags := flag.String("bf", "", "Backend flags")
+	flag.Parse()
+
+	if len(flag.Args()) != 1 {
+		fmt.Printf("error: expected one file to compile\n")
+		os.Exit(1)
+	}
+	input := flag.Args()[0]
+
+	data, err := os.ReadFile(input)
+	if err != nil {
+		fmt.Printf("error: failed to open file %s\n", input)
+		os.Exit(1)
+	}
+
 	l := lexer.Lexer{}
-	log.SetFlags(0)
-
-	program :=
-		`
-		(exfun print_s64)
-
-		(let s64 foo)
-		(:= foo 1337)
-		(
-			(print_s64 foo)
-			(let s64 foo)
-			(:= foo 1234)
-			(print_s64 foo)
-		)
-		(:= foo 456)
-
-		(print_s64 foo)
-`
-
-	l.LoadString(program)
+	l.LoadString(string(data))
 
 	root, err := parser.CreateAST(&l)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("%s%s\n", input, err)
+		os.Exit(1)
 	}
 
-	fmt.Print(codegen.Codegen(root))
+	asm := codegen.Codegen(root)
+	asmPath := "/tmp/cli.s"
+	err = os.WriteFile(asmPath, []byte(asm), 0666)
+	if err != nil {
+		fmt.Printf("error: failed to write to %s\n", asmPath)
+		os.Exit(1)
+	}
+
+	var cmdFlags []string
+	if len(*backendFlags) > 0 {
+		cmdFlags = []string{"-o", *output, *backendFlags, asmPath}
+	} else {
+		cmdFlags = []string{"-o", *output, asmPath}
+	}
+
+	cmd := exec.Command(*backend, cmdFlags...)
+	fmt.Printf("[backend] executing %s\n", cmd)
+
+	backendOutput, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("%s\n", backendOutput)
+		os.Exit(1)
+	}
 }
