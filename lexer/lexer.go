@@ -208,3 +208,7 @@ func (l *Lexer) Consume() (Token, error) {
 	l.consumeToken()
 	return token, nil
 }
+
+func (l *Lexer) Discard() {
+	l.consumeToken()
+}

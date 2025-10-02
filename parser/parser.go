@@ -52,47 +52,38 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 	switch lookahead.Tag {
 	case lexer.TokenTag('+'):
+		lx.Discard()
+
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSum
 
-		t, err := lx.Match(lexer.TokenTag('+'))
-		if err != nil {
-			return nil, err
-		}
-
 		err = parseBinOp(&n, lx)
 		if err != nil {
 			return nil, err
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
 		}
 	case lexer.TokenTag('-'):
+		lx.Discard()
+
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpSub
 
-		t, err := lx.Match(lexer.TokenTag('-'))
-		if err != nil {
-			return nil, err
-		}
-
 		err = parseBinOp(&n, lx)
 		if err != nil {
 			return nil, err
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
 		}
 	case lexer.TokenColEq:
+		lx.Discard()
+
 		n.Tag = NodeBinOp
 		n.BinOp.Tag = BinOpAssign
-
-		t, err := lx.Match(lexer.TokenColEq)
-		if err != nil {
-			return nil, err
-		}
 
 		err = parseBinOp(&n, lx)
 		if err != nil {
@@ -100,11 +91,11 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		}
 
 		if n.BinOp.Lval.Tag != NodeVariable {
-			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", lookahead.Line, lookahead.Column)
 		}
 
 		if !binOpTypeCheck(&n) {
-			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: operand type mismatch", lookahead.Line, lookahead.Column)
 		}
 	case lexer.TokenTag('('):
 		n.Tag = NodeBlock
@@ -119,15 +110,12 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 
 		sym.PopBlock()
 	case lexer.TokenLet:
+		lx.Discard()
+
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		_, err := lx.Match(lexer.TokenLet)
-		if err != nil {
-			return nil, err
-		}
-
-		tp, err := lx.Peek(0)
+		tp, err := lx.Consume()
 		if err != nil {
 			return nil, err
 		}
@@ -135,16 +123,8 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		switch tp.Tag {
 		case lexer.TokenS64:
 			v.Type = sym.ValueS64
-			_, err := lx.Match(lexer.TokenS64)
-			if err != nil {
-				return nil, err
-			}
 		case lexer.TokenU64:
 			v.Type = sym.ValueU64
-			_, err := lx.Match(lexer.TokenU64)
-			if err != nil {
-				return nil, err
-			}
 		default:
 			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
 		}
@@ -163,17 +143,14 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		sym.SetVariable(id, v)
 		n.Id = id
 	case lexer.TokenExfun:
-		n.Tag = NodeFunEx
-
-		_, err := lx.Match(lexer.TokenExfun)
-		if err != nil {
-			return nil, err
-		}
+		lx.Discard()
 
 		t, err := lx.Match(lexer.TokenIdent)
 		if err != nil {
 			return nil, err
 		}
+
+		n.Tag = NodeFunEx
 		name := t.Data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
@@ -186,17 +163,15 @@ func parseList(lx *lexer.Lexer) (*Node, error) {
 		})
 		n.Id = id
 	case lexer.TokenIdent:
-		n.Tag = NodeFunCall
+		name := lookahead.Data
 
-		t, err := lx.Match(lexer.TokenIdent)
-		if err != nil {
-			return nil, err
-		}
-		name := t.Data
+		lx.Discard()
+
+		n.Tag = NodeFunCall
 
 		id := sym.LookupGlobal(name, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: function is not declared", t.Line, t.Column)
+			return nil, fmt.Errorf(":%d:%d: error: function is not declared", lookahead.Line, lookahead.Column)
 		}
 		n.Id = id
 
@@ -274,34 +249,31 @@ func parseItem(lx *lexer.Lexer) (*Node, error) {
 
 	switch lookahead.Tag {
 	case lexer.TokenInteger:
+		data := lookahead.Data
+
+		lx.Discard()
+
 		n.Tag = NodeInteger
 		// TODO: this is not clear, add a cast?
 		n.Integer.Type = sym.ValueS64
 
-		value, err := strconv.ParseInt(lookahead.Data, 0, 64)
+		value, err := strconv.ParseInt(data, 0, 64)
 		if err != nil {
 			panic("incorrect integer data")
 		}
 		n.Integer.Value = value
-
-		_, err = lx.Match(lexer.TokenInteger)
-		if err != nil {
-			return nil, err
-		}
 	case lexer.TokenIdent:
-		n.Tag = NodeVariable
 		name := lookahead.Data
+
+		lx.Discard()
+
+		n.Tag = NodeVariable
 
 		id := sym.LookupGlobal(name, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope", lookahead.Line, lookahead.Column)
 		}
 		n.Id = id
-
-		_, err = lx.Match(lexer.TokenIdent)
-		if err != nil {
-			return nil, err
-		}
 	case lexer.TokenTag('('):
 		return parseList(lx)
 	default:
