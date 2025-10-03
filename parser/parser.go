@@ -1,3 +1,5 @@
+// This file contains the main parsing functions.
+
 package parser
 
 import (

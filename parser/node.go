@@ -1,4 +1,4 @@
-// Node type defenition and method implementation
+// This file contains node type defenition and method implementation.
 
 package parser
 

@@ -1,3 +1,6 @@
+// This file contains functions that do character grouping, or
+// "lexing".
+
 package parser
 
 import (

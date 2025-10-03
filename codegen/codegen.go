@@ -1,3 +1,5 @@
+// This file contains basic x86_64 Linux GAS codegen functions.
+
 package codegen
 
 import (

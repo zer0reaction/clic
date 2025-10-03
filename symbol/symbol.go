@@ -1,3 +1,5 @@
+// This file contains a symbol table implementation.
+
 package symbol
 
 type SymbolId uint
