@@ -1,11 +1,11 @@
-package lexer
+package parser
 
 import (
 	"fmt"
 	"regexp"
 )
 
-const lexerRbufferSize uint = 16
+const ringSize uint = 16
 
 type TokenTag uint
 
@@ -34,15 +34,6 @@ type Token struct {
 	Data   string
 }
 
-type Lexer struct {
-	data     string
-	line     uint
-	column   uint
-	writeInd uint
-	readInd  uint
-	rbuffer  [lexerRbufferSize]Token
-}
-
 var tokenPatterns = []struct {
 	tag       TokenTag
 	pattern   *regexp.Regexp
@@ -68,50 +59,45 @@ var tokenPatterns = []struct {
 var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
-func (t *Token) PrintInfo() {
-	fmt.Printf("tag:%d line:%d column:%d data:%d\n",
-		t.Tag, t.Line, t.Column, t.Data)
+func (p *Parser) getCachedCount() uint {
+	if p.writeInd >= p.readInd {
+		return p.writeInd - p.readInd
+	} else {
+		return ringSize - p.readInd + p.writeInd
+	}
 }
 
-func (l *Lexer) LoadString(data string) {
-	l.data = data
-	l.line = 1
-	l.column = 1
-	l.writeInd = 0
-	l.readInd = 0
-}
-
-func (l *Lexer) consumeToken() {
-	if l.readInd == l.writeInd {
+func (p *Parser) consumeToken() {
+	if p.readInd == p.writeInd {
 		panic("ring buffer underflow")
 	}
 
-	l.readInd = (l.readInd + 1) % lexerRbufferSize
+	p.readInd = (p.readInd + 1) % ringSize
 }
 
-func (l *Lexer) pushToken(t Token) {
-	if (l.writeInd+1)%lexerRbufferSize == l.readInd {
+func (p *Parser) pushToken(t Token) {
+	if (p.writeInd+1)%ringSize == p.readInd {
 		panic("ring buffer overflow")
 	}
 
-	l.rbuffer[l.writeInd] = t
-	l.writeInd = (l.writeInd + 1) % lexerRbufferSize
+	p.rbuffer[p.writeInd] = t
+	p.writeInd = (p.writeInd + 1) % ringSize
 }
 
-func (l *Lexer) cacheToken() error {
+func (p *Parser) cacheToken() error {
 	for {
 		blankFound := false
 		newlineFound := false
 
-		if match := blankPattern.FindString(l.data); match != "" {
-			l.column += uint(len(match))
-			l.data = l.data[len(match):]
+		if match := blankPattern.FindString(p.data); match != "" {
+			p.column += uint(len(match))
+			p.data = p.data[len(match):]
 			blankFound = true
 		}
-		if match := newlinePattern.FindString(l.data); match != "" {
-			l.line += uint(len(match))
-			l.column = 1
-			l.data = l.data[len(match):]
+		if match := newlinePattern.FindString(p.data); match != "" {
+			p.line += uint(len(match))
+			p.column = 1
+			p.data = p.data[len(match):]
 			newlineFound = true
 		}
 
@@ -122,18 +108,18 @@ func (l *Lexer) cacheToken() error {
 
 	matched := false
 
-	if l.data == "" {
+	if p.data == "" {
 		t := Token{
 			Tag:    TokenEOF,
-			Line:   l.line,
-			Column: l.column,
+			Line:   p.line,
+			Column: p.column,
 		}
-		l.pushToken(t)
+		p.pushToken(t)
 		return nil
 	}
 
-	for _, p := range tokenPatterns {
-		match := p.pattern.FindString(l.data)
+	for _, pattern := range tokenPatterns {
+		match := pattern.pattern.FindString(p.data)
 		if match == "" {
 			continue
 		}
@@ -141,51 +127,43 @@ func (l *Lexer) cacheToken() error {
 		matched = true
 
 		t := Token{
-			Tag:    p.tag,
-			Line:   l.line,
-			Column: l.column,
+			Tag:    pattern.tag,
+			Line:   p.line,
+			Column: p.column,
 		}
 
-		if p.needsData {
+		if pattern.needsData {
 			t.Data = match
 		}
 
-		l.pushToken(t)
+		p.pushToken(t)
 
-		l.data = l.data[len(match):]
-		l.column += uint(len(match))
+		p.data = p.data[len(match):]
+		p.column += uint(len(match))
 		break
 	}
 
 	if !matched {
 		return fmt.Errorf(":%d:%d: error: unknown syntax",
-			l.line, l.column)
+			p.line, p.column)
 	}
 
 	return nil
 }
 
-func (l *Lexer) GetCachedCount() uint {
-	if l.writeInd >= l.readInd {
-		return l.writeInd - l.readInd
-	} else {
-		return lexerRbufferSize - l.readInd + l.writeInd
-	}
-}
-
-func (l *Lexer) Peek(offset uint) (Token, error) {
-	for l.GetCachedCount() <= offset {
-		err := l.cacheToken()
+func (p *Parser) Peek(offset uint) (Token, error) {
+	for p.getCachedCount() <= offset {
+		err := p.cacheToken()
 		if err != nil {
 			return Token{}, err
 		}
 	}
 
-	return l.rbuffer[(l.readInd+offset)%lexerRbufferSize], nil
+	return p.rbuffer[(p.readInd+offset)%ringSize], nil
 }
 
-func (l *Lexer) Match(tag TokenTag) (Token, error) {
-	token, err := l.Peek(0)
+func (p *Parser) Match(tag TokenTag) (Token, error) {
+	token, err := p.Peek(0)
 	if err != nil {
 		return Token{}, err
 	}
@@ -196,19 +174,19 @@ func (l *Lexer) Match(tag TokenTag) (Token, error) {
 			token.Line, token.Column, tag)
 	}
 
-	l.consumeToken()
+	p.consumeToken()
 	return token, nil
 }
 
-func (l *Lexer) Consume() (Token, error) {
-	token, err := l.Peek(0)
+func (p *Parser) Consume() (Token, error) {
+	token, err := p.Peek(0)
 	if err != nil {
 		return Token{}, err
 	}
-	l.consumeToken()
+	p.consumeToken()
 	return token, nil
 }
 
-func (l *Lexer) Discard() {
-	l.consumeToken()
+func (p *Parser) Discard() {
+	p.consumeToken()
 }

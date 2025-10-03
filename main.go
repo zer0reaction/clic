@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/zer0reaction/lisp-go/codegen"
-	"github.com/zer0reaction/lisp-go/lexer"
 	"github.com/zer0reaction/lisp-go/parser"
 	"os"
 	"os/exec"
@@ -28,9 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	l := lexer.Lexer{}
-	l.LoadString(string(data))
-	p := parser.New(&l)
+	p := parser.New(string(data))
 
 	root, err := p.CreateAST()
 	if err != nil {

@@ -2,20 +2,27 @@ package parser
 
 import (
 	"fmt"
-	lex "github.com/zer0reaction/lisp-go/lexer"
 	sym "github.com/zer0reaction/lisp-go/symbol"
 	"strconv"
 )
 
 type Parser struct {
-	lx *lex.Lexer
+	data     string
+	line     uint
+	column   uint
+	writeInd uint
+	readInd  uint
+	rbuffer  [ringSize]Token
 }
 
-func New(lx *lex.Lexer) *Parser {
-	p := Parser{
-		lx: lx,
+func New(data string) *Parser {
+	return &Parser{
+		data:     data,
+		line:     1,
+		column:   1,
+		writeInd: 0,
+		readInd:  0,
 	}
-	return &p
 }
 
 func (p *Parser) CreateAST() (*Node, error) {
@@ -23,7 +30,11 @@ func (p *Parser) CreateAST() (*Node, error) {
 	var tail *Node = nil
 
 	for {
-		if p.look().Tag == lex.TokenEOF {
+		lookahead, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+		if lookahead.Tag == TokenEOF {
 			break
 		}
 
@@ -44,35 +55,35 @@ func (p *Parser) CreateAST() (*Node, error) {
 	return head, nil
 }
 
-func (p *Parser) look() lex.Token {
-	t, err := p.lx.Peek(0)
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 func (p *Parser) parseList() (*Node, error) {
-	_, err := p.lx.Match(lex.TokenTag('('))
+	_, err := p.Match(TokenTag('('))
 	if err != nil {
 		return nil, err
 	}
 
 	n := Node{}
 
-	switch p.look().Tag {
-	case lex.TokenTag('+'):
+	lookahead, err := p.Peek(0)
+	if err != nil {
+		return nil, err
+	}
+
+	switch lookahead.Tag {
+	case TokenTag('+'):
 		err = p.parseBinOp(&n, BinOpSum)
 		if err != nil {
 			return nil, err
 		}
-	case lex.TokenTag('-'):
+	case TokenTag('-'):
 		err = p.parseBinOp(&n, BinOpSub)
 		if err != nil {
 			return nil, err
 		}
-	case lex.TokenColEq:
-		t := p.look()
+	case TokenColEq:
+		t, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
 
 		err = p.parseBinOp(&n, BinOpAssign)
 		if err != nil {
@@ -82,7 +93,7 @@ func (p *Parser) parseList() (*Node, error) {
 		if n.BinOp.Lval.Tag != NodeVariable {
 			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", t.Line, t.Column)
 		}
-	case lex.TokenTag('('):
+	case TokenTag('('):
 		n.Tag = NodeBlock
 
 		sym.PushBlock()
@@ -94,27 +105,27 @@ func (p *Parser) parseList() (*Node, error) {
 		n.Block.Start = items
 
 		sym.PopBlock()
-	case lex.TokenLet:
-		p.lx.Discard()
+	case TokenLet:
+		p.Discard()
 
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		tp, err := p.lx.Consume()
+		tp, err := p.Consume()
 		if err != nil {
 			return nil, err
 		}
 
 		switch tp.Tag {
-		case lex.TokenS64:
+		case TokenS64:
 			v.Type = sym.ValueS64
-		case lex.TokenU64:
+		case TokenU64:
 			v.Type = sym.ValueU64
 		default:
 			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
 		}
 
-		t, err := p.lx.Match(lex.TokenIdent)
+		t, err := p.Match(TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -127,10 +138,10 @@ func (p *Parser) parseList() (*Node, error) {
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
 		sym.SetVariable(id, v)
 		n.Id = id
-	case lex.TokenExfun:
-		p.lx.Discard()
+	case TokenExfun:
+		p.Discard()
 
-		t, err := p.lx.Match(lex.TokenIdent)
+		t, err := p.Match(TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -147,10 +158,13 @@ func (p *Parser) parseList() (*Node, error) {
 			Name: name,
 		})
 		n.Id = id
-	case lex.TokenIdent:
-		t := p.look()
+	case TokenIdent:
+		t, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
 
-		p.lx.Discard()
+		p.Discard()
 
 		n.Tag = NodeFunCall
 
@@ -166,10 +180,10 @@ func (p *Parser) parseList() (*Node, error) {
 		}
 		n.Function.ArgStart = items
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", p.look().Line, p.look().Column)
+		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", lookahead.Line, lookahead.Column)
 	}
 
-	_, err = p.lx.Match(lex.TokenTag(')'))
+	_, err = p.Match(TokenTag(')'))
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +192,7 @@ func (p *Parser) parseList() (*Node, error) {
 }
 
 func (p *Parser) parseBinOp(n *Node, tag BinOpTag) error {
-	t, err := p.lx.Consume()
+	t, err := p.Consume()
 	if err != nil {
 		return err
 	}
@@ -210,7 +224,15 @@ func (p *Parser) collectItems() (*Node, error) {
 	var head *Node = nil
 	var tail *Node = nil
 
-	for p.look().Tag != lex.TokenTag(')') {
+	for {
+		lookahead, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+		if lookahead.Tag == TokenTag(')') {
+			break
+		}
+
 		item, err := p.parseItem()
 		if err != nil {
 			return nil, err
@@ -231,11 +253,19 @@ func (p *Parser) collectItems() (*Node, error) {
 func (p *Parser) parseItem() (*Node, error) {
 	n := Node{}
 
-	switch p.look().Tag {
-	case lex.TokenInteger:
-		t := p.look()
+	lookahead, err := p.Peek(0)
+	if err != nil {
+		return nil, err
+	}
 
-		p.lx.Discard()
+	switch lookahead.Tag {
+	case TokenInteger:
+		t, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+
+		p.Discard()
 
 		n.Tag = NodeInteger
 		// TODO: this is not clear, add a cast?
@@ -246,10 +276,13 @@ func (p *Parser) parseItem() (*Node, error) {
 			panic("incorrect integer data")
 		}
 		n.Integer.Value = value
-	case lex.TokenIdent:
-		t := p.look()
+	case TokenIdent:
+		t, err := p.Peek(0)
+		if err != nil {
+			return nil, err
+		}
 
-		p.lx.Discard()
+		p.Discard()
 
 		n.Tag = NodeVariable
 
@@ -258,10 +291,10 @@ func (p *Parser) parseItem() (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope", t.Line, t.Column)
 		}
 		n.Id = id
-	case lex.TokenTag('('):
+	case TokenTag('('):
 		return p.parseList()
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list item", p.look().Line, p.look().Column)
+		return nil, fmt.Errorf(":%d:%d: error: incorrect list item", lookahead.Line, lookahead.Column)
 	}
 
 	return &n, nil
