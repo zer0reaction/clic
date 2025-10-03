@@ -151,7 +151,7 @@ func (p *Parser) cacheToken() error {
 	return nil
 }
 
-func (p *Parser) Peek(offset uint) (Token, error) {
+func (p *Parser) peek(offset uint) (Token, error) {
 	for p.getCachedCount() <= offset {
 		err := p.cacheToken()
 		if err != nil {
@@ -162,8 +162,8 @@ func (p *Parser) Peek(offset uint) (Token, error) {
 	return p.rbuffer[(p.readInd+offset)%ringSize], nil
 }
 
-func (p *Parser) Match(tag TokenTag) (Token, error) {
-	token, err := p.Peek(0)
+func (p *Parser) match(tag TokenTag) (Token, error) {
+	token, err := p.peek(0)
 	if err != nil {
 		return Token{}, err
 	}
@@ -178,8 +178,8 @@ func (p *Parser) Match(tag TokenTag) (Token, error) {
 	return token, nil
 }
 
-func (p *Parser) Consume() (Token, error) {
-	token, err := p.Peek(0)
+func (p *Parser) consume() (Token, error) {
+	token, err := p.peek(0)
 	if err != nil {
 		return Token{}, err
 	}
@@ -187,6 +187,6 @@ func (p *Parser) Consume() (Token, error) {
 	return token, nil
 }
 
-func (p *Parser) Discard() {
+func (p *Parser) discard() {
 	p.consumeToken()
 }

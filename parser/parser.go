@@ -30,7 +30,7 @@ func (p *Parser) CreateAST() (*Node, error) {
 	var tail *Node = nil
 
 	for {
-		lookahead, err := p.Peek(0)
+		lookahead, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
@@ -56,14 +56,14 @@ func (p *Parser) CreateAST() (*Node, error) {
 }
 
 func (p *Parser) parseList() (*Node, error) {
-	_, err := p.Match(TokenTag('('))
+	_, err := p.match(TokenTag('('))
 	if err != nil {
 		return nil, err
 	}
 
 	n := Node{}
 
-	lookahead, err := p.Peek(0)
+	lookahead, err := p.peek(0)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (p *Parser) parseList() (*Node, error) {
 			return nil, err
 		}
 	case TokenColEq:
-		t, err := p.Peek(0)
+		t, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
@@ -106,12 +106,12 @@ func (p *Parser) parseList() (*Node, error) {
 
 		sym.PopBlock()
 	case TokenLet:
-		p.Discard()
+		p.discard()
 
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		tp, err := p.Consume()
+		tp, err := p.consume()
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +125,7 @@ func (p *Parser) parseList() (*Node, error) {
 			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
 		}
 
-		t, err := p.Match(TokenIdent)
+		t, err := p.match(TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -139,9 +139,9 @@ func (p *Parser) parseList() (*Node, error) {
 		sym.SetVariable(id, v)
 		n.Id = id
 	case TokenExfun:
-		p.Discard()
+		p.discard()
 
-		t, err := p.Match(TokenIdent)
+		t, err := p.match(TokenIdent)
 		if err != nil {
 			return nil, err
 		}
@@ -159,12 +159,12 @@ func (p *Parser) parseList() (*Node, error) {
 		})
 		n.Id = id
 	case TokenIdent:
-		t, err := p.Peek(0)
+		t, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
 
-		p.Discard()
+		p.discard()
 
 		n.Tag = NodeFunCall
 
@@ -183,7 +183,7 @@ func (p *Parser) parseList() (*Node, error) {
 		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", lookahead.Line, lookahead.Column)
 	}
 
-	_, err = p.Match(TokenTag(')'))
+	_, err = p.match(TokenTag(')'))
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (p *Parser) parseList() (*Node, error) {
 }
 
 func (p *Parser) parseBinOp(n *Node, tag BinOpTag) error {
-	t, err := p.Consume()
+	t, err := p.consume()
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (p *Parser) collectItems() (*Node, error) {
 	var tail *Node = nil
 
 	for {
-		lookahead, err := p.Peek(0)
+		lookahead, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
@@ -253,19 +253,19 @@ func (p *Parser) collectItems() (*Node, error) {
 func (p *Parser) parseItem() (*Node, error) {
 	n := Node{}
 
-	lookahead, err := p.Peek(0)
+	lookahead, err := p.peek(0)
 	if err != nil {
 		return nil, err
 	}
 
 	switch lookahead.Tag {
 	case TokenInteger:
-		t, err := p.Peek(0)
+		t, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
 
-		p.Discard()
+		p.discard()
 
 		n.Tag = NodeInteger
 		// TODO: this is not clear, add a cast?
@@ -277,12 +277,12 @@ func (p *Parser) parseItem() (*Node, error) {
 		}
 		n.Integer.Value = value
 	case TokenIdent:
-		t, err := p.Peek(0)
+		t, err := p.peek(0)
 		if err != nil {
 			return nil, err
 		}
 
-		p.Discard()
+		p.discard()
 
 		n.Tag = NodeVariable
 
