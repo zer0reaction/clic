@@ -64,32 +64,32 @@ var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (p *Parser) getCachedCount() uint {
-	if p.writeInd >= p.readInd {
-		return p.writeInd - p.readInd
+	if p.l.writeInd >= p.l.readInd {
+		return p.l.writeInd - p.l.readInd
 	} else {
-		return ringSize - p.readInd + p.writeInd
+		return ringSize - p.l.readInd + p.l.writeInd
 	}
 }
 
 func (p *Parser) consumeToken() {
-	if p.readInd == p.writeInd {
+	if p.l.readInd == p.l.writeInd {
 		panic("ring buffer underflow")
 	}
 
-	p.readInd = (p.readInd + 1) % ringSize
+	p.l.readInd = (p.l.readInd + 1) % ringSize
 }
 
 func (p *Parser) pushToken(t token) {
-	if (p.writeInd+1)%ringSize == p.readInd {
+	if (p.l.writeInd+1)%ringSize == p.l.readInd {
 		panic("ring buffer overflow")
 	}
 
-	p.rbuffer[p.writeInd] = t
-	p.writeInd = (p.writeInd + 1) % ringSize
+	p.l.rbuffer[p.l.writeInd] = t
+	p.l.writeInd = (p.l.writeInd + 1) % ringSize
 }
 
 func (p *Parser) cacheToken() {
-	if p.data == "" {
+	if p.l.data == "" {
 		panic("attempted to cache empty input")
 	}
 
@@ -97,15 +97,15 @@ func (p *Parser) cacheToken() {
 		blankFound := false
 		newlineFound := false
 
-		if match := blankPattern.FindString(p.data); match != "" {
-			p.column += uint(len(match))
-			p.data = p.data[len(match):]
+		if match := blankPattern.FindString(p.l.data); match != "" {
+			p.l.column += uint(len(match))
+			p.l.data = p.l.data[len(match):]
 			blankFound = true
 		}
-		if match := newlinePattern.FindString(p.data); match != "" {
-			p.line += uint(len(match))
-			p.column = 1
-			p.data = p.data[len(match):]
+		if match := newlinePattern.FindString(p.l.data); match != "" {
+			p.l.line += uint(len(match))
+			p.l.column = 1
+			p.l.data = p.l.data[len(match):]
 			newlineFound = true
 		}
 
@@ -116,18 +116,18 @@ func (p *Parser) cacheToken() {
 
 	matched := false
 
-	if p.data == "" {
+	if p.l.data == "" {
 		t := token{
 			tag:    tokenEOF,
-			line:   p.line,
-			column: p.column,
+			line:   p.l.line,
+			column: p.l.column,
 		}
 		p.pushToken(t)
 		return
 	}
 
 	for _, pattern := range tokenPatterns {
-		match := pattern.pattern.FindString(p.data)
+		match := pattern.pattern.FindString(p.l.data)
 		if match == "" {
 			continue
 		}
@@ -136,8 +136,8 @@ func (p *Parser) cacheToken() {
 
 		t := token{
 			tag:    pattern.tag,
-			line:   p.line,
-			column: p.column,
+			line:   p.l.line,
+			column: p.l.column,
 		}
 
 		if pattern.needsData {
@@ -146,8 +146,8 @@ func (p *Parser) cacheToken() {
 
 		p.pushToken(t)
 
-		p.data = p.data[len(match):]
-		p.column += uint(len(match))
+		p.l.data = p.l.data[len(match):]
+		p.l.column += uint(len(match))
 		break
 	}
 
@@ -155,8 +155,8 @@ func (p *Parser) cacheToken() {
 		report.Report(report.Form{
 			Tag:    report.ReportFatal,
 			File:   p.fileName,
-			Line:   p.line,
-			Column: p.column,
+			Line:   p.l.line,
+			Column: p.l.column,
 			Msg:    "unknown syntax",
 		})
 	}
@@ -166,7 +166,7 @@ func (p *Parser) peek(offset uint) token {
 	for p.getCachedCount() <= offset {
 		p.cacheToken()
 	}
-	return p.rbuffer[(p.readInd+offset)%ringSize]
+	return p.l.rbuffer[(p.l.readInd+offset)%ringSize]
 }
 
 func (p *Parser) match(tag tokenTag) token {

@@ -8,8 +8,7 @@ import (
 	"strconv"
 )
 
-type Parser struct {
-	fileName string
+type lexer struct {
 	data     string
 	line     uint
 	column   uint
@@ -18,14 +17,22 @@ type Parser struct {
 	rbuffer  [ringSize]token
 }
 
+type Parser struct {
+	fileName string
+
+	l lexer
+}
+
 func New(fileName string, data string) *Parser {
 	return &Parser{
 		fileName: fileName,
-		data:     data,
-		line:     1,
-		column:   1,
-		writeInd: 0,
-		readInd:  0,
+		l: lexer{
+			data:     data,
+			line:     1,
+			column:   1,
+			writeInd: 0,
+			readInd:  0,
+		},
 	}
 }
 
