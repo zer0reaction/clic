@@ -5,59 +5,60 @@ package parser
 
 import (
 	"fmt"
+	"github.com/zer0reaction/lisp-go/report"
 	"regexp"
 )
 
 const ringSize uint = 16
 
-type TokenTag uint
+type tokenTag uint
 
 const (
 	// 0-127 are ASCII chars
-	tokenError TokenTag = (128 + iota)
+	tokenError tokenTag = (128 + iota)
 
 	// Keywords
-	TokenLet
-	TokenExfun
-	TokenColEq
-	TokenS64
-	TokenU64
+	tokenLet
+	tokenExfun
+	tokenColEq
+	tokenS64
+	tokenU64
 
 	// Other terminals
-	TokenInteger
-	TokenIdent
+	tokenInteger
+	tokenIdent
 
-	TokenEOF
+	tokenEOF
 )
 
-type Token struct {
-	Tag    TokenTag
-	Line   uint
-	Column uint
-	Data   string
+type token struct {
+	tag    tokenTag
+	line   uint
+	column uint
+	data   string
 }
 
 var tokenPatterns = []struct {
-	tag       TokenTag
+	tag       tokenTag
 	pattern   *regexp.Regexp
 	needsData bool
 }{
 	// Order matters
 
-	{TokenLet, regexp.MustCompile(`^\blet\b`), false},
-	{TokenColEq, regexp.MustCompile(`^:=`), false},
-	{TokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
-	{TokenS64, regexp.MustCompile(`^\bs64\b`), false},
-	{TokenU64, regexp.MustCompile(`^\bu64\b`), false},
-	{TokenTag('('), regexp.MustCompile(`^\(`), false},
-	{TokenTag(')'), regexp.MustCompile(`^\)`), false},
+	{tokenLet, regexp.MustCompile(`^\blet\b`), false},
+	{tokenColEq, regexp.MustCompile(`^:=`), false},
+	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
+	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
+	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
+	{tokenTag('('), regexp.MustCompile(`^\(`), false},
+	{tokenTag(')'), regexp.MustCompile(`^\)`), false},
 
-	{TokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
+	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
 
-	{TokenTag('+'), regexp.MustCompile(`^\+`), false},
-	{TokenTag('-'), regexp.MustCompile(`^\-`), false},
+	{tokenTag('+'), regexp.MustCompile(`^\+`), false},
+	{tokenTag('-'), regexp.MustCompile(`^\-`), false},
 
-	{TokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
+	{tokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
 var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
@@ -78,7 +79,7 @@ func (p *Parser) consumeToken() {
 	p.readInd = (p.readInd + 1) % ringSize
 }
 
-func (p *Parser) pushToken(t Token) {
+func (p *Parser) pushToken(t token) {
 	if (p.writeInd+1)%ringSize == p.readInd {
 		panic("ring buffer overflow")
 	}
@@ -87,7 +88,11 @@ func (p *Parser) pushToken(t Token) {
 	p.writeInd = (p.writeInd + 1) % ringSize
 }
 
-func (p *Parser) cacheToken() error {
+func (p *Parser) cacheToken() {
+	if p.data == "" {
+		panic("attempted to cache empty input")
+	}
+
 	for {
 		blankFound := false
 		newlineFound := false
@@ -112,13 +117,13 @@ func (p *Parser) cacheToken() error {
 	matched := false
 
 	if p.data == "" {
-		t := Token{
-			Tag:    TokenEOF,
-			Line:   p.line,
-			Column: p.column,
+		t := token{
+			tag:    tokenEOF,
+			line:   p.line,
+			column: p.column,
 		}
 		p.pushToken(t)
-		return nil
+		return
 	}
 
 	for _, pattern := range tokenPatterns {
@@ -129,14 +134,14 @@ func (p *Parser) cacheToken() error {
 
 		matched = true
 
-		t := Token{
-			Tag:    pattern.tag,
-			Line:   p.line,
-			Column: p.column,
+		t := token{
+			tag:    pattern.tag,
+			line:   p.line,
+			column: p.column,
 		}
 
 		if pattern.needsData {
-			t.Data = match
+			t.data = match
 		}
 
 		p.pushToken(t)
@@ -147,47 +152,45 @@ func (p *Parser) cacheToken() error {
 	}
 
 	if !matched {
-		return fmt.Errorf(":%d:%d: error: unknown syntax",
-			p.line, p.column)
+		report.Report(report.Form{
+			Tag:    report.ReportFatal,
+			File:   p.fileName,
+			Line:   p.line,
+			Column: p.column,
+			Msg:    "unknown syntax",
+		})
 	}
-
-	return nil
 }
 
-func (p *Parser) peek(offset uint) (Token, error) {
+func (p *Parser) peek(offset uint) token {
 	for p.getCachedCount() <= offset {
-		err := p.cacheToken()
-		if err != nil {
-			return Token{}, err
-		}
+		p.cacheToken()
 	}
-
-	return p.rbuffer[(p.readInd+offset)%ringSize], nil
+	return p.rbuffer[(p.readInd+offset)%ringSize]
 }
 
-func (p *Parser) match(tag TokenTag) (Token, error) {
-	token, err := p.peek(0)
-	if err != nil {
-		return Token{}, err
-	}
+func (p *Parser) match(tag tokenTag) token {
+	token := p.peek(0)
 
-	if token.Tag != tag {
+	if token.tag != tag {
 		// TODO: add displaying names
-		return Token{}, fmt.Errorf(":%d:%d: error: expected token [%d]",
-			token.Line, token.Column, tag)
+		report.Report(report.Form{
+			Tag:    report.ReportFatal,
+			File:   p.fileName,
+			Line:   token.line,
+			Column: token.column,
+			Msg:    fmt.Sprintf("expected token [%d]", tag),
+		})
 	}
 
 	p.consumeToken()
-	return token, nil
+	return token
 }
 
-func (p *Parser) consume() (Token, error) {
-	token, err := p.peek(0)
-	if err != nil {
-		return Token{}, err
-	}
+func (p *Parser) consume() token {
+	token := p.peek(0)
 	p.consumeToken()
-	return token, nil
+	return token
 }
 
 func (p *Parser) discard() {

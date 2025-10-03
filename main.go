@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/zer0reaction/lisp-go/codegen"
 	"github.com/zer0reaction/lisp-go/parser"
+	"github.com/zer0reaction/lisp-go/report"
 	"os"
 	"os/exec"
 )
@@ -27,11 +28,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := parser.New(string(data))
+	p := parser.New(input, string(data))
+	root := p.CreateAST()
 
-	root, err := p.CreateAST()
-	if err != nil {
-		fmt.Printf("%s%s\n", input, err)
+	if report.ErrorsOccured() {
+		fmt.Printf("errors occured, exiting\n")
 		os.Exit(1)
 	}
 

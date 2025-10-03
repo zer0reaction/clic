@@ -3,22 +3,24 @@
 package parser
 
 import (
-	"fmt"
+	"github.com/zer0reaction/lisp-go/report"
 	sym "github.com/zer0reaction/lisp-go/symbol"
 	"strconv"
 )
 
 type Parser struct {
+	fileName string
 	data     string
 	line     uint
 	column   uint
 	writeInd uint
 	readInd  uint
-	rbuffer  [ringSize]Token
+	rbuffer  [ringSize]token
 }
 
-func New(data string) *Parser {
+func New(fileName string, data string) *Parser {
 	return &Parser{
+		fileName: fileName,
 		data:     data,
 		line:     1,
 		column:   1,
@@ -27,23 +29,17 @@ func New(data string) *Parser {
 	}
 }
 
-func (p *Parser) CreateAST() (*Node, error) {
+func (p *Parser) CreateAST() *Node {
 	var head *Node = nil
 	var tail *Node = nil
 
 	for {
-		lookahead, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
-		if lookahead.Tag == TokenEOF {
+		lookahead := p.peek(0)
+		if lookahead.tag == tokenEOF {
 			break
 		}
 
-		n, err := p.parseList()
-		if err != nil {
-			return nil, err
-		}
+		n := p.parseList()
 
 		if tail == nil {
 			head = n
@@ -54,105 +50,99 @@ func (p *Parser) CreateAST() (*Node, error) {
 		}
 	}
 
-	return head, nil
+	return head
 }
 
-func (p *Parser) parseList() (*Node, error) {
-	_, err := p.match(TokenTag('('))
-	if err != nil {
-		return nil, err
-	}
+func (p *Parser) parseList() *Node {
+	p.match(tokenTag('('))
 
 	n := Node{}
 
-	lookahead, err := p.peek(0)
-	if err != nil {
-		return nil, err
-	}
+	lookahead := p.peek(0)
 
-	switch lookahead.Tag {
-	case TokenTag('+'):
-		err = p.parseBinOp(&n, BinOpSum)
-		if err != nil {
-			return nil, err
-		}
-	case TokenTag('-'):
-		err = p.parseBinOp(&n, BinOpSub)
-		if err != nil {
-			return nil, err
-		}
-	case TokenColEq:
-		t, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
+	switch lookahead.tag {
+	case tokenTag('+'):
+		p.parseBinOp(&n, BinOpSum)
+	case tokenTag('-'):
+		p.parseBinOp(&n, BinOpSub)
+	case tokenColEq:
+		t := p.peek(0)
 
-		err = p.parseBinOp(&n, BinOpAssign)
-		if err != nil {
-			return nil, err
-		}
+		p.parseBinOp(&n, BinOpAssign)
 
 		if n.BinOp.Lval.Tag != NodeVariable {
-			return nil, fmt.Errorf(":%d:%d: error: lvalue is not a variable", t.Line, t.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				File:   p.fileName,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    "lvalue is not a variable",
+			})
 		}
-	case TokenTag('('):
+	case tokenTag('('):
 		n.Tag = NodeBlock
 
 		sym.PushBlock()
 
-		items, err := p.collectItems()
-		if err != nil {
-			return nil, err
-		}
+		items := p.collectItems()
 		n.Block.Start = items
 
 		sym.PopBlock()
-	case TokenLet:
+	case tokenLet:
 		p.discard()
 
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		tp, err := p.consume()
-		if err != nil {
-			return nil, err
-		}
+		tp := p.consume()
 
-		switch tp.Tag {
-		case TokenS64:
+		switch tp.tag {
+		case tokenS64:
 			v.Type = sym.ValueS64
-		case TokenU64:
+		case tokenU64:
 			v.Type = sym.ValueU64
 		default:
-			return nil, fmt.Errorf(":%d:%d: error: expected type", tp.Line, tp.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportFatal,
+				File:   p.fileName,
+				Line:   tp.line,
+				Column: tp.column,
+				Msg:    "expected type here",
+			})
 		}
 
-		t, err := p.match(TokenIdent)
-		if err != nil {
-			return nil, err
-		}
-		v.Name = t.Data
+		t := p.match(tokenIdent)
+		v.Name = t.data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: variable is already declared in the current block", t.Line, t.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				File:   p.fileName,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    "variable is already declared",
+			})
 		}
 
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
 		sym.SetVariable(id, v)
 		n.Id = id
-	case TokenExfun:
+	case tokenExfun:
 		p.discard()
 
-		t, err := p.match(TokenIdent)
-		if err != nil {
-			return nil, err
-		}
+		t := p.match(tokenIdent)
 
 		n.Tag = NodeFunEx
-		name := t.Data
+		name := t.data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: function is already declared", t.Line, t.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				File:   p.fileName,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    "function is already declared",
+			})
 		}
 
 		id := sym.AddSymbol(name, sym.SymbolFunction)
@@ -160,85 +150,75 @@ func (p *Parser) parseList() (*Node, error) {
 			Name: name,
 		})
 		n.Id = id
-	case TokenIdent:
-		t, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
+	case tokenIdent:
+		t := p.peek(0)
 
 		p.discard()
 
 		n.Tag = NodeFunCall
 
-		id := sym.LookupGlobal(t.Data, sym.SymbolFunction)
+		id := sym.LookupGlobal(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: function is not declared", t.Line, t.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				File:   p.fileName,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    "function is not declared",
+			})
 		}
 		n.Id = id
 
-		items, err := p.collectItems()
-		if err != nil {
-			return nil, err
-		}
+		items := p.collectItems()
 		n.Function.ArgStart = items
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list head item", lookahead.Line, lookahead.Column)
+		report.Report(report.Form{
+			Tag:    report.ReportFatal,
+			File:   p.fileName,
+			Line:   lookahead.line,
+			Column: lookahead.column,
+			Msg:    "incorrect list head item",
+		})
 	}
 
-	_, err = p.match(TokenTag(')'))
-	if err != nil {
-		return nil, err
-	}
+	p.match(tokenTag(')'))
 
-	return &n, nil
+	return &n
 }
 
-func (p *Parser) parseBinOp(n *Node, tag BinOpTag) error {
-	t, err := p.consume()
-	if err != nil {
-		return err
-	}
+func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
+	t := p.consume()
 
 	n.Tag = NodeBinOp
 	n.BinOp.Tag = tag
 
-	lval, err := p.parseItem()
-	if err != nil {
-		return err
-	}
-	rval, err := p.parseItem()
-	if err != nil {
-		return err
-	}
-	n.BinOp.Lval = lval
-	n.BinOp.Rval = rval
+	n.BinOp.Lval = p.parseItem()
+	n.BinOp.Rval = p.parseItem()
 
 	lvalType := n.BinOp.Lval.GetType()
 	rvalType := n.BinOp.Rval.GetType()
 	if lvalType != rvalType {
-		return fmt.Errorf(":%d:%d: error: operand type mismatch", t.Line, t.Column)
+		report.Report(report.Form{
+			Tag:    report.ReportNonfatal,
+			File:   p.fileName,
+			Line:   t.line,
+			Column: t.column,
+			Msg:    "operand type mismatch",
+		})
 	}
-
-	return nil
 }
 
-func (p *Parser) collectItems() (*Node, error) {
+func (p *Parser) collectItems() *Node {
 	var head *Node = nil
 	var tail *Node = nil
 
 	for {
-		lookahead, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
-		if lookahead.Tag == TokenTag(')') {
+		lookahead := p.peek(0)
+		if lookahead.tag == tokenTag(')') {
 			break
 		}
 
-		item, err := p.parseItem()
-		if err != nil {
-			return nil, err
-		}
+		item := p.parseItem()
 
 		if tail == nil {
 			head = item
@@ -249,23 +229,17 @@ func (p *Parser) collectItems() (*Node, error) {
 		}
 	}
 
-	return head, nil
+	return head
 }
 
-func (p *Parser) parseItem() (*Node, error) {
+func (p *Parser) parseItem() *Node {
 	n := Node{}
 
-	lookahead, err := p.peek(0)
-	if err != nil {
-		return nil, err
-	}
+	lookahead := p.peek(0)
 
-	switch lookahead.Tag {
-	case TokenInteger:
-		t, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
+	switch lookahead.tag {
+	case tokenInteger:
+		t := p.peek(0)
 
 		p.discard()
 
@@ -273,31 +247,40 @@ func (p *Parser) parseItem() (*Node, error) {
 		// TODO: this is not clear, add a cast?
 		n.Integer.Type = sym.ValueS64
 
-		value, err := strconv.ParseInt(t.Data, 0, 64)
+		value, err := strconv.ParseInt(t.data, 0, 64)
 		if err != nil {
 			panic("incorrect integer data")
 		}
 		n.Integer.Value = value
-	case TokenIdent:
-		t, err := p.peek(0)
-		if err != nil {
-			return nil, err
-		}
+	case tokenIdent:
+		t := p.peek(0)
 
 		p.discard()
 
 		n.Tag = NodeVariable
 
-		id := sym.LookupGlobal(t.Data, sym.SymbolVariable)
+		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			return nil, fmt.Errorf(":%d:%d: error: variable does not exist in the current scope", t.Line, t.Column)
+			report.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				File:   p.fileName,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    "variable does not exist",
+			})
 		}
 		n.Id = id
-	case TokenTag('('):
+	case tokenTag('('):
 		return p.parseList()
 	default:
-		return nil, fmt.Errorf(":%d:%d: error: incorrect list item", lookahead.Line, lookahead.Column)
+		report.Report(report.Form{
+			Tag:    report.ReportFatal,
+			File:   p.fileName,
+			Line:   lookahead.line,
+			Column: lookahead.column,
+			Msg:    "incorrect list item",
+		})
 	}
 
-	return &n, nil
+	return &n
 }
