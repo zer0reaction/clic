@@ -60,12 +60,24 @@ func (p *Parser) CreateAST() *Node {
 	return head
 }
 
+func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
+	report.Report(report.Form{
+		Tag:    tag,
+		File:   p.fileName,
+		Line:   n.Line,
+		Column: n.Column,
+		Msg:    msg,
+	})
+}
+
 func (p *Parser) parseList() *Node {
 	p.match(tokenTag('('))
 
-	n := Node{}
-
 	lookahead := p.peek(0)
+	n := Node{
+		Line:   lookahead.line,
+		Column: lookahead.column,
+	}
 
 	switch lookahead.tag {
 	case tokenTag('+'):
@@ -73,18 +85,12 @@ func (p *Parser) parseList() *Node {
 	case tokenTag('-'):
 		p.parseBinOp(&n, BinOpSub)
 	case tokenColEq:
-		t := p.peek(0)
-
 		p.parseBinOp(&n, BinOpAssign)
 
 		if n.BinOp.Lval.Tag != NodeVariable {
-			report.Report(report.Form{
-				Tag:    report.ReportNonfatal,
-				File:   p.fileName,
-				Line:   t.line,
-				Column: t.column,
-				Msg:    "lvalue is not a variable",
-			})
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"lvalue is not a variable")
 		}
 	case tokenTag('('):
 		n.Tag = NodeBlock
@@ -101,34 +107,24 @@ func (p *Parser) parseList() *Node {
 		n.Tag = NodeVariableDecl
 		v := sym.Variable{}
 
-		tp := p.consume()
-
-		switch tp.tag {
+		switch p.consume().tag {
 		case tokenS64:
 			v.Type = sym.ValueS64
 		case tokenU64:
 			v.Type = sym.ValueU64
 		default:
-			report.Report(report.Form{
-				Tag:    report.ReportFatal,
-				File:   p.fileName,
-				Line:   tp.line,
-				Column: tp.column,
-				Msg:    "expected type here",
-			})
+			p.reportHere(&n,
+				report.ReportFatal,
+				"expected type here")
 		}
 
 		t := p.match(tokenIdent)
 		v.Name = t.data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
-			report.Report(report.Form{
-				Tag:    report.ReportNonfatal,
-				File:   p.fileName,
-				Line:   t.line,
-				Column: t.column,
-				Msg:    "variable is already declared",
-			})
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"variable is already declared")
 		}
 
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
@@ -143,13 +139,9 @@ func (p *Parser) parseList() *Node {
 		name := t.data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
-			report.Report(report.Form{
-				Tag:    report.ReportNonfatal,
-				File:   p.fileName,
-				Line:   t.line,
-				Column: t.column,
-				Msg:    "function is already declared",
-			})
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"function is already declared")
 		}
 
 		id := sym.AddSymbol(name, sym.SymbolFunction)
@@ -166,26 +158,18 @@ func (p *Parser) parseList() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			report.Report(report.Form{
-				Tag:    report.ReportNonfatal,
-				File:   p.fileName,
-				Line:   t.line,
-				Column: t.column,
-				Msg:    "function is not declared",
-			})
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"function is not declared")
 		}
 		n.Id = id
 
 		items := p.collectItems()
 		n.Function.ArgStart = items
 	default:
-		report.Report(report.Form{
-			Tag:    report.ReportFatal,
-			File:   p.fileName,
-			Line:   lookahead.line,
-			Column: lookahead.column,
-			Msg:    "incorrect list head item",
-		})
+		p.reportHere(&n,
+			report.ReportFatal,
+			"incorrect list head item")
 	}
 
 	p.match(tokenTag(')'))
@@ -194,7 +178,7 @@ func (p *Parser) parseList() *Node {
 }
 
 func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
-	t := p.consume()
+	p.discard()
 
 	n.Tag = NodeBinOp
 	n.BinOp.Tag = tag
@@ -205,13 +189,9 @@ func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
 	lvalType := n.BinOp.Lval.GetType()
 	rvalType := n.BinOp.Rval.GetType()
 	if lvalType != rvalType {
-		report.Report(report.Form{
-			Tag:    report.ReportNonfatal,
-			File:   p.fileName,
-			Line:   t.line,
-			Column: t.column,
-			Msg:    "operand type mismatch",
-		})
+		p.reportHere(n,
+			report.ReportNonfatal,
+			"operand type mismatch")
 	}
 }
 
@@ -240,9 +220,11 @@ func (p *Parser) collectItems() *Node {
 }
 
 func (p *Parser) parseItem() *Node {
-	n := Node{}
-
 	lookahead := p.peek(0)
+	n := Node{
+		Line:   lookahead.line,
+		Column: lookahead.column,
+	}
 
 	switch lookahead.tag {
 	case tokenInteger:
@@ -268,25 +250,17 @@ func (p *Parser) parseItem() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			report.Report(report.Form{
-				Tag:    report.ReportNonfatal,
-				File:   p.fileName,
-				Line:   t.line,
-				Column: t.column,
-				Msg:    "variable does not exist",
-			})
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"variable does not exist")
 		}
 		n.Id = id
 	case tokenTag('('):
 		return p.parseList()
 	default:
-		report.Report(report.Form{
-			Tag:    report.ReportFatal,
-			File:   p.fileName,
-			Line:   lookahead.line,
-			Column: lookahead.column,
-			Msg:    "incorrect list item",
-		})
+		p.reportHere(&n,
+			report.ReportFatal,
+			"incorrect list item")
 	}
 
 	return &n

@@ -29,9 +29,11 @@ const (
 )
 
 type Node struct {
-	Tag  NodeTag
-	Next *Node
-	Id   sym.SymbolId
+	Tag    NodeTag
+	Next   *Node
+	Id     sym.SymbolId
+	Line   uint
+	Column uint
 
 	Integer struct {
 		Value int64
