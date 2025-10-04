@@ -60,7 +60,7 @@ func (p *Parser) CreateAST() *Node {
 	return head
 }
 
-func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
+func (p *Parser) ReportHere(n *Node, tag report.ReportTag, msg string) {
 	report.Report(report.Form{
 		Tag:    tag,
 		File:   p.fileName,
@@ -86,12 +86,6 @@ func (p *Parser) parseList() *Node {
 		p.parseBinOp(&n, BinOpSub)
 	case tokenColEq:
 		p.parseBinOp(&n, BinOpAssign)
-
-		if n.BinOp.Lval.Tag != NodeVariable {
-			p.reportHere(&n,
-				report.ReportNonfatal,
-				"lvalue is not a variable")
-		}
 	case tokenTag('('):
 		n.Tag = NodeBlock
 
@@ -113,7 +107,7 @@ func (p *Parser) parseList() *Node {
 		case tokenU64:
 			v.Type = sym.ValueU64
 		default:
-			p.reportHere(&n,
+			p.ReportHere(&n,
 				report.ReportFatal,
 				"expected type here")
 		}
@@ -122,7 +116,7 @@ func (p *Parser) parseList() *Node {
 		v.Name = t.data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
-			p.reportHere(&n,
+			p.ReportHere(&n,
 				report.ReportNonfatal,
 				"variable is already declared")
 		}
@@ -139,7 +133,7 @@ func (p *Parser) parseList() *Node {
 		name := t.data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
-			p.reportHere(&n,
+			p.ReportHere(&n,
 				report.ReportNonfatal,
 				"function is already declared")
 		}
@@ -158,7 +152,7 @@ func (p *Parser) parseList() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			p.reportHere(&n,
+			p.ReportHere(&n,
 				report.ReportNonfatal,
 				"function is not declared")
 		}
@@ -167,7 +161,7 @@ func (p *Parser) parseList() *Node {
 		items := p.collectItems()
 		n.Function.ArgStart = items
 	default:
-		p.reportHere(&n,
+		p.ReportHere(&n,
 			report.ReportFatal,
 			"incorrect list head item")
 	}
@@ -178,6 +172,7 @@ func (p *Parser) parseList() *Node {
 }
 
 func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
+	// TODO: token tag should be checked _here_
 	p.discard()
 
 	n.Tag = NodeBinOp
@@ -185,14 +180,6 @@ func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
 
 	n.BinOp.Lval = p.parseItem()
 	n.BinOp.Rval = p.parseItem()
-
-	lvalType := n.BinOp.Lval.GetType()
-	rvalType := n.BinOp.Rval.GetType()
-	if lvalType != rvalType {
-		p.reportHere(n,
-			report.ReportNonfatal,
-			"operand type mismatch")
-	}
 }
 
 func (p *Parser) collectItems() *Node {
@@ -250,7 +237,7 @@ func (p *Parser) parseItem() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			p.reportHere(&n,
+			p.ReportHere(&n,
 				report.ReportNonfatal,
 				"variable does not exist")
 		}
@@ -258,7 +245,7 @@ func (p *Parser) parseItem() *Node {
 	case tokenTag('('):
 		return p.parseList()
 	default:
-		p.reportHere(&n,
+		p.ReportHere(&n,
 			report.ReportFatal,
 			"incorrect list item")
 	}

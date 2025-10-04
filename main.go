@@ -6,6 +6,7 @@ import (
 	"github.com/zer0reaction/lisp-go/codegen"
 	"github.com/zer0reaction/lisp-go/parser"
 	"github.com/zer0reaction/lisp-go/report"
+	"github.com/zer0reaction/lisp-go/types"
 	"os"
 	"os/exec"
 )
@@ -29,8 +30,14 @@ func main() {
 	}
 
 	p := parser.New(input, string(data))
-	root := p.CreateAST()
 
+	root := p.CreateAST()
+	if report.ErrorsOccured() {
+		fmt.Printf("errors occured, exiting\n")
+		os.Exit(1)
+	}
+
+	types.TypeCheck(p, root)
 	if report.ErrorsOccured() {
 		fmt.Printf("errors occured, exiting\n")
 		os.Exit(1)
