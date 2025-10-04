@@ -45,6 +45,8 @@ func Report(f Form) {
 	}
 }
 
-func ErrorsOccured() bool {
-	return errorsOccured
+func ExitOnErrors(code int) {
+	if errorsOccured {
+		os.Exit(code)
+	}
 }

@@ -32,16 +32,10 @@ func main() {
 	p := parser.New(input, string(data))
 
 	root := p.CreateAST()
-	if report.ErrorsOccured() {
-		fmt.Printf("errors occured, exiting\n")
-		os.Exit(1)
-	}
+	report.ExitOnErrors(1)
 
 	types.TypeCheck(p, root)
-	if report.ErrorsOccured() {
-		fmt.Printf("errors occured, exiting\n")
-		os.Exit(1)
-	}
+	report.ExitOnErrors(1)
 
 	asm := codegen.Codegen(root)
 	asmPath := "/tmp/cli.s"
