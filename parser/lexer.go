@@ -64,6 +64,33 @@ var tokenPatterns = []struct {
 var newlinePattern = regexp.MustCompile(`^\n+`)
 var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
+func (tag tokenTag) toString() string {
+	if uint(tag) <= 127 {
+		return fmt.Sprintf("'%c'", uint(tag))
+	}
+
+	switch tag {
+	case tokenLet:
+		return "'let'"
+	case tokenExfun:
+		return "'exfun'"
+	case tokenColEq:
+		return "':='"
+	case tokenS64:
+		return "'s64'"
+	case tokenU64:
+		return "'u64'"
+	case tokenInteger:
+		return "integer literal"
+	case tokenIdent:
+		return "identifier"
+	case tokenEOF:
+		return "EOF"
+	default:
+		panic("unrecognized token")
+	}
+}
+
 func (p *Parser) getCachedCount() uint {
 	if p.l.writeInd >= p.l.readInd {
 		return p.l.writeInd - p.l.readInd
@@ -174,13 +201,14 @@ func (p *Parser) match(tag tokenTag) token {
 	token := p.peek(0)
 
 	if token.tag != tag {
-		// TODO: add displaying names
+		msg := fmt.Sprintf("expected %s, got %s",
+			tag.toString(), token.tag.toString())
 		report.Report(report.Form{
 			Tag:    report.ReportFatal,
 			File:   p.fileName,
 			Line:   token.line,
 			Column: token.column,
-			Msg:    fmt.Sprintf("expected token [%d]", tag),
+			Msg:    msg,
 		})
 	}
 
