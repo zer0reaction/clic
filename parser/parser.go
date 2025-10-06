@@ -81,11 +81,11 @@ func (p *Parser) parseList() *Node {
 
 	switch lookahead.tag {
 	case tokenTag('+'):
-		p.parseBinOp(&n, BinOpSum)
+		p.parseBinOp(&n)
 	case tokenTag('-'):
-		p.parseBinOp(&n, BinOpSub)
+		p.parseBinOp(&n)
 	case tokenColEq:
-		p.parseBinOp(&n, BinOpAssign)
+		p.parseBinOp(&n)
 	case tokenTag('('):
 		n.Tag = NodeBlock
 
@@ -171,12 +171,19 @@ func (p *Parser) parseList() *Node {
 	return &n
 }
 
-func (p *Parser) parseBinOp(n *Node, tag BinOpTag) {
-	// TODO: token tag should be checked _here_
-	p.discard()
-
+func (p *Parser) parseBinOp(n *Node) {
 	n.Tag = NodeBinOp
-	n.BinOp.Tag = tag
+
+	switch p.consume().tag {
+	case tokenTag('+'):
+		n.BinOp.Tag = BinOpSum
+	case tokenTag('-'):
+		n.BinOp.Tag = BinOpSub
+	case tokenColEq:
+		n.BinOp.Tag = BinOpAssign
+	default:
+		panic("incorrect binop token")
+	}
 
 	n.BinOp.Lval = p.parseItem()
 	n.BinOp.Rval = p.parseItem()
