@@ -5,7 +5,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/zer0reaction/lisp-go/report"
+	"lisp-go/report"
 	"regexp"
 )
 
