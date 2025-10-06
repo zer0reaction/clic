@@ -9,6 +9,15 @@ import (
 	"regexp"
 )
 
+type lexer struct {
+	data     string
+	line     uint
+	column   uint
+	writeInd uint
+	readInd  uint
+	rbuffer  [ringSize]token
+}
+
 const ringSize uint = 16
 
 type tokenTag uint
@@ -21,9 +30,12 @@ const (
 	// Keywords
 	tokenLet = (128 + iota)
 	tokenExfun
+	tokenIf
 	tokenColEq
 	tokenS64
 	tokenU64
+	tokenTrue
+	tokenFalse
 
 	// Other terminals
 	tokenInteger
@@ -39,18 +51,22 @@ type token struct {
 	data   string
 }
 
+// TODO: probably need to refactor to tokenKeyword
 var tokenPatterns = []struct {
 	tag       tokenTag
 	pattern   *regexp.Regexp
 	needsData bool
 }{
-	// Order matters
+	// Order matters!
 
 	{tokenLet, regexp.MustCompile(`^\blet\b`), false},
-	{tokenColEq, regexp.MustCompile(`^:=`), false},
 	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
+	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
+	{tokenColEq, regexp.MustCompile(`^:=`), false},
 	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
 	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
+	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
+	{tokenFalse, regexp.MustCompile(`^\bfalse\b`), false},
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
 	{tokenTag(')'), regexp.MustCompile(`^\)`), false},
 
@@ -74,12 +90,18 @@ func (tag tokenTag) toString() string {
 		return "'let'"
 	case tokenExfun:
 		return "'exfun'"
+	case tokenIf:
+		return "'if'"
 	case tokenColEq:
 		return "':='"
 	case tokenS64:
 		return "'s64'"
 	case tokenU64:
 		return "'u64'"
+	case tokenTrue:
+		return "'true'"
+	case tokenFalse:
+		return "'false'"
 	case tokenInteger:
 		return "integer literal"
 	case tokenIdent:

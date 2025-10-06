@@ -23,6 +23,8 @@ var stackOffset uint = 0
 
 var externDecls = ""
 
+var localCount = 0
+
 func Codegen(root *parser.Node) string {
 	code := ""
 
@@ -96,7 +98,7 @@ func codegenNode(n *parser.Node) string {
 		cur := n.Function.ArgStart
 		argCount := 0
 
-		code += "	/* NodeFunCall */\n"
+		code += "	/* FunCall */\n"
 
 		for cur != nil {
 			if argCount >= len(argRegisters) {
@@ -111,6 +113,15 @@ func codegenNode(n *parser.Node) string {
 		f := sym.GetFunction(n.Id)
 		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
+	case parser.NodeBoolean:
+		code += "	/* Boolean */\n"
+		if n.Boolean.Value {
+			code += "	pushq	$1\n"
+		} else {
+			code += "	pushq	$0\n"
+		}
+	case parser.NodeIf:
+		code += codegenIf(n)
 	default:
 		panic("node type not implemented")
 	}
@@ -152,6 +163,26 @@ func codegenBinOp(n *parser.Node) string {
 	default:
 		panic("node type not implemented")
 	}
+
+	return code
+}
+
+func codegenIf(n *parser.Node) string {
+	code := ""
+
+	code += codegenNode(n.If.Exp)
+
+	lbl := fmt.Sprintf(".L%d", localCount)
+	localCount += 1
+
+	code += "	/* If */\n"
+	code += "	popq	%rax\n" // exp
+	code += "	cmpq	$0, %rax\n"
+	code += fmt.Sprintf("	je	%s\n", lbl)
+
+	code += codegenNode(n.If.Body)
+
+	code += fmt.Sprintf("%s:\n", lbl)
 
 	return code
 }

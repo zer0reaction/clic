@@ -20,8 +20,10 @@ type ValueType uint
 
 const (
 	valueError ValueType = iota
+	ValueNone
 	ValueS64
 	ValueU64
+	ValueBoolean
 )
 
 type Variable struct {

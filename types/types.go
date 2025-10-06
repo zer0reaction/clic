@@ -2,9 +2,13 @@
 
 package types
 
+// TODO: move type enum here
+
 import (
+	"fmt"
 	"github.com/zer0reaction/lisp-go/parser"
 	"github.com/zer0reaction/lisp-go/report"
+	sym "github.com/zer0reaction/lisp-go/symbol"
 )
 
 func TypeCheck(p *parser.Parser, n *parser.Node) {
@@ -17,6 +21,8 @@ func TypeCheck(p *parser.Parser, n *parser.Node) {
 		checkBinOp(p, n)
 	case parser.NodeInteger:
 		// do nothing
+	case parser.NodeBoolean:
+		// do nothing
 	case parser.NodeBlock:
 		TypeCheck(p, n.Block.Start)
 	case parser.NodeVariableDecl:
@@ -27,8 +33,10 @@ func TypeCheck(p *parser.Parser, n *parser.Node) {
 		// do nothing
 	case parser.NodeFunCall:
 		TypeCheck(p, n.Function.ArgStart)
+	case parser.NodeIf:
+		checkIf(p, n)
 	default:
-		panic("node not implemented")
+		panic(fmt.Sprintf("node not implemented [%d]", n.Tag))
 	}
 
 	TypeCheck(p, n.Next)
@@ -36,7 +44,7 @@ func TypeCheck(p *parser.Parser, n *parser.Node) {
 
 func checkBinOp(p *parser.Parser, n *parser.Node) {
 	if n.Tag != parser.NodeBinOp {
-		panic("node is not a binop")
+		panic("incorrect node tag")
 	}
 
 	TypeCheck(p, n.BinOp.Lval)
@@ -57,4 +65,19 @@ func checkBinOp(p *parser.Parser, n *parser.Node) {
 			report.ReportNonfatal,
 			"lvalue is not a storage location")
 	}
+}
+
+func checkIf(p *parser.Parser, n *parser.Node) {
+	if n.Tag != parser.NodeIf {
+		panic("incorrect node tag")
+	}
+
+	expType := n.If.Exp.GetType()
+	if expType != sym.ValueBoolean {
+		p.ReportHere(n,
+			report.ReportNonfatal,
+			"expected boolean type in expression")
+	}
+
+	TypeCheck(p, n.If.Body)
 }

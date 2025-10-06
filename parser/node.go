@@ -12,11 +12,13 @@ const (
 	nodeError NodeTag = iota
 	NodeBinOp
 	NodeInteger
+	NodeBoolean
 	NodeBlock
 	NodeVariableDecl
 	NodeVariable
 	NodeFunEx
 	NodeFunCall
+	NodeIf
 )
 
 type BinOpTag uint
@@ -39,6 +41,9 @@ type Node struct {
 		Value int64
 		Type  sym.ValueType
 	}
+	Boolean struct {
+		Value bool
+	}
 	BinOp struct {
 		Tag  BinOpTag
 		Lval *Node
@@ -50,6 +55,10 @@ type Node struct {
 	Function struct {
 		ArgStart *Node
 	}
+	If struct {
+		Exp  *Node
+		Body *Node
+	}
 }
 
 func (n *Node) GetType() sym.ValueType {
@@ -59,8 +68,12 @@ func (n *Node) GetType() sym.ValueType {
 	case NodeVariable:
 		v := sym.GetVariable(n.Id)
 		return v.Type
+	case NodeBoolean:
+		return sym.ValueBoolean
 	case NodeBinOp:
 		return n.BinOp.Rval.GetType()
+	case NodeIf:
+		return sym.ValueNone
 	default:
 		panic("node does not have a type")
 	}

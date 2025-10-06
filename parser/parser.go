@@ -8,15 +8,6 @@ import (
 	"strconv"
 )
 
-type lexer struct {
-	data     string
-	line     uint
-	column   uint
-	writeInd uint
-	readInd  uint
-	rbuffer  [ringSize]token
-}
-
 type Parser struct {
 	fileName string
 
@@ -144,9 +135,7 @@ func (p *Parser) parseList() *Node {
 		})
 		n.Id = id
 	case tokenIdent:
-		t := p.peek(0)
-
-		p.discard()
+		t := p.consume()
 
 		n.Tag = NodeFunCall
 
@@ -160,6 +149,12 @@ func (p *Parser) parseList() *Node {
 
 		items := p.collectItems()
 		n.Function.ArgStart = items
+	case tokenIf:
+		n.Tag = NodeIf
+
+		p.discard()
+		n.If.Exp = p.parseItem()
+		n.If.Body = p.parseItem()
 	default:
 		p.ReportHere(&n,
 			report.ReportFatal,
@@ -236,9 +231,7 @@ func (p *Parser) parseItem() *Node {
 		}
 		n.Integer.Value = value
 	case tokenIdent:
-		t := p.peek(0)
-
-		p.discard()
+		t := p.consume()
 
 		n.Tag = NodeVariable
 
@@ -249,6 +242,14 @@ func (p *Parser) parseItem() *Node {
 				"variable does not exist")
 		}
 		n.Id = id
+	case tokenTrue:
+		p.discard()
+		n.Tag = NodeBoolean
+		n.Boolean.Value = true
+	case tokenFalse:
+		p.discard()
+		n.Tag = NodeBoolean
+		n.Boolean.Value = false
 	case tokenTag('('):
 		return p.parseList()
 	default:
