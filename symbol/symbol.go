@@ -2,6 +2,10 @@
 
 package symbol
 
+import (
+	"github.com/zer0reaction/lisp-go/types"
+)
+
 type SymbolId uint
 
 const (
@@ -16,19 +20,9 @@ const (
 	SymbolFunction
 )
 
-type ValueType uint
-
-const (
-	valueError ValueType = iota
-	ValueNone
-	ValueS64
-	ValueU64
-	ValueBoolean
-)
-
 type Variable struct {
 	Name   string
-	Type   ValueType
+	Type   types.Type
 	Offset uint // subtracted from RBP
 }
 

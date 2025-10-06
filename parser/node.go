@@ -4,6 +4,7 @@ package parser
 
 import (
 	sym "github.com/zer0reaction/lisp-go/symbol"
+	"github.com/zer0reaction/lisp-go/types"
 )
 
 type NodeTag uint
@@ -39,7 +40,7 @@ type Node struct {
 
 	Integer struct {
 		Value int64
-		Type  sym.ValueType
+		Type  types.Type
 	}
 	Boolean struct {
 		Value bool
@@ -61,7 +62,7 @@ type Node struct {
 	}
 }
 
-func (n *Node) GetType() sym.ValueType {
+func (n *Node) GetType() types.Type {
 	switch n.Tag {
 	case NodeInteger:
 		return n.Integer.Type
@@ -69,11 +70,11 @@ func (n *Node) GetType() sym.ValueType {
 		v := sym.GetVariable(n.Id)
 		return v.Type
 	case NodeBoolean:
-		return sym.ValueBoolean
+		return types.Bool
 	case NodeBinOp:
 		return n.BinOp.Rval.GetType()
 	case NodeIf:
-		return sym.ValueNone
+		return types.None
 	default:
 		panic("node does not have a type")
 	}

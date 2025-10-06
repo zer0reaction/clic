@@ -6,7 +6,6 @@ import (
 	"github.com/zer0reaction/lisp-go/codegen"
 	"github.com/zer0reaction/lisp-go/parser"
 	"github.com/zer0reaction/lisp-go/report"
-	"github.com/zer0reaction/lisp-go/types"
 	"os"
 	"os/exec"
 )
@@ -34,7 +33,7 @@ func main() {
 	root := p.CreateAST()
 	report.ExitOnErrors(1)
 
-	types.TypeCheck(p, root)
+	p.TypeCheck(root)
 	report.ExitOnErrors(1)
 
 	asm := codegen.Codegen(root)

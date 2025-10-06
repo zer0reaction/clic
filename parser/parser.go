@@ -5,6 +5,7 @@ package parser
 import (
 	"github.com/zer0reaction/lisp-go/report"
 	sym "github.com/zer0reaction/lisp-go/symbol"
+	"github.com/zer0reaction/lisp-go/types"
 	"strconv"
 )
 
@@ -51,7 +52,38 @@ func (p *Parser) CreateAST() *Node {
 	return head
 }
 
-func (p *Parser) ReportHere(n *Node, tag report.ReportTag, msg string) {
+func (p *Parser) TypeCheck(n *Node) {
+	if n == nil {
+		return
+	}
+
+	switch n.Tag {
+	case NodeBinOp:
+		p.checkBinOp(n)
+	case NodeInteger:
+		// do nothing
+	case NodeBoolean:
+		// do nothing
+	case NodeBlock:
+		p.TypeCheck(n.Block.Start)
+	case NodeVariableDecl:
+		// do nothing
+	case NodeVariable:
+		// do nothing
+	case NodeFunEx:
+		// do nothing
+	case NodeFunCall:
+		p.TypeCheck(n.Function.ArgStart)
+	case NodeIf:
+		p.checkIf(n)
+	default:
+		panic("node not implemented")
+	}
+
+	p.TypeCheck(n.Next)
+}
+
+func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
 	report.Report(report.Form{
 		Tag:    tag,
 		File:   p.fileName,
@@ -94,11 +126,11 @@ func (p *Parser) parseList() *Node {
 
 		switch p.consume().tag {
 		case tokenS64:
-			v.Type = sym.ValueS64
+			v.Type = types.S64
 		case tokenU64:
-			v.Type = sym.ValueU64
+			v.Type = types.U64
 		default:
-			p.ReportHere(&n,
+			p.reportHere(&n,
 				report.ReportFatal,
 				"expected type here")
 		}
@@ -107,7 +139,7 @@ func (p *Parser) parseList() *Node {
 		v.Name = t.data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
-			p.ReportHere(&n,
+			p.reportHere(&n,
 				report.ReportNonfatal,
 				"variable is already declared")
 		}
@@ -124,7 +156,7 @@ func (p *Parser) parseList() *Node {
 		name := t.data
 
 		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
-			p.ReportHere(&n,
+			p.reportHere(&n,
 				report.ReportNonfatal,
 				"function is already declared")
 		}
@@ -141,7 +173,7 @@ func (p *Parser) parseList() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			p.ReportHere(&n,
+			p.reportHere(&n,
 				report.ReportNonfatal,
 				"function is not declared")
 		}
@@ -156,7 +188,7 @@ func (p *Parser) parseList() *Node {
 		n.If.Exp = p.parseItem()
 		n.If.Body = p.parseItem()
 	default:
-		p.ReportHere(&n,
+		p.reportHere(&n,
 			report.ReportFatal,
 			"incorrect list head item")
 	}
@@ -223,7 +255,7 @@ func (p *Parser) parseItem() *Node {
 
 		n.Tag = NodeInteger
 		// TODO: this is not clear, add a cast?
-		n.Integer.Type = sym.ValueS64
+		n.Integer.Type = types.S64
 
 		value, err := strconv.ParseInt(t.data, 0, 64)
 		if err != nil {
@@ -237,7 +269,7 @@ func (p *Parser) parseItem() *Node {
 
 		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			p.ReportHere(&n,
+			p.reportHere(&n,
 				report.ReportNonfatal,
 				"variable does not exist")
 		}
@@ -253,10 +285,50 @@ func (p *Parser) parseItem() *Node {
 	case tokenTag('('):
 		return p.parseList()
 	default:
-		p.ReportHere(&n,
+		p.reportHere(&n,
 			report.ReportFatal,
 			"incorrect list item")
 	}
 
 	return &n
+}
+
+func (p *Parser) checkBinOp(n *Node) {
+	if n.Tag != NodeBinOp {
+		panic("incorrect node tag")
+	}
+
+	p.TypeCheck(n.BinOp.Lval)
+	p.TypeCheck(n.BinOp.Rval)
+
+	lvalType := n.BinOp.Lval.GetType()
+	rvalType := n.BinOp.Rval.GetType()
+	if lvalType != rvalType {
+		p.reportHere(n,
+			report.ReportNonfatal,
+			"operand type mismatch")
+	}
+
+	isAssign := (n.BinOp.Tag == BinOpAssign)
+	isStorage := (n.BinOp.Lval.Tag == NodeVariable)
+	if isAssign && !isStorage {
+		p.reportHere(n,
+			report.ReportNonfatal,
+			"lvalue is not a storage location")
+	}
+}
+
+func (p *Parser) checkIf(n *Node) {
+	if n.Tag != NodeIf {
+		panic("incorrect node tag")
+	}
+
+	expType := n.If.Exp.GetType()
+	if expType != types.Bool {
+		p.reportHere(n,
+			report.ReportNonfatal,
+			"expected boolean type in expression")
+	}
+
+	p.TypeCheck(n.If.Body)
 }
