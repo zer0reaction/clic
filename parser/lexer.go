@@ -14,11 +14,12 @@ const ringSize uint = 16
 type tokenTag uint
 
 const (
-	// 0-127 are ASCII chars
-	tokenError tokenTag = (128 + iota)
+	tokenError tokenTag = 0
+
+	// imagine ASCII chars here
 
 	// Keywords
-	tokenLet
+	tokenLet = (128 + iota)
 	tokenExfun
 	tokenColEq
 	tokenS64
