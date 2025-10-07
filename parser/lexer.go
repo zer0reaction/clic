@@ -77,8 +77,6 @@ var tokenPatterns = []struct {
 
 	{tokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
-var newlinePattern = regexp.MustCompile(`^\n+`)
-var blankPattern = regexp.MustCompile(`^[ \t]+`)
 
 func (tag tokenTag) toString() string {
 	if uint(tag) <= 127 {
@@ -143,25 +141,25 @@ func (p *Parser) cacheToken() {
 		panic("attempted to cache empty input")
 	}
 
+blankLoop:
 	for {
-		blankFound := false
-		newlineFound := false
-
-		if match := blankPattern.FindString(p.l.data); match != "" {
-			p.l.column += uint(len(match))
-			p.l.data = p.l.data[len(match):]
-			blankFound = true
+		if len(p.l.data) == 0 {
+			break blankLoop
 		}
-		if match := newlinePattern.FindString(p.l.data); match != "" {
-			p.l.line += uint(len(match))
+
+		switch p.l.data[0] {
+		case ' ':
+			p.l.column += 1
+		case '\t':
+			p.l.column += 1
+		case '\n':
 			p.l.column = 1
-			p.l.data = p.l.data[len(match):]
-			newlineFound = true
+			p.l.line += 1
+		default:
+			break blankLoop
 		}
 
-		if !blankFound && !newlineFound {
-			break
-		}
+		p.l.data = p.l.data[1:]
 	}
 
 	matched := false
