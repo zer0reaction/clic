@@ -31,6 +31,7 @@ const (
 	tokenLet = (128 + iota)
 	tokenExfun
 	tokenIf
+	tokenElse
 	tokenColEq
 	tokenS64
 	tokenU64
@@ -62,6 +63,7 @@ var tokenPatterns = []struct {
 	{tokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
+	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenColEq, regexp.MustCompile(`^:=`), false},
 	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
 	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
@@ -90,6 +92,8 @@ func (tag tokenTag) toString() string {
 		return "'exfun'"
 	case tokenIf:
 		return "'if'"
+	case tokenElse:
+		return "'else'"
 	case tokenColEq:
 		return "':='"
 	case tokenS64:

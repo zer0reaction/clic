@@ -172,17 +172,29 @@ func codegenIf(n *parser.Node) string {
 
 	code += codegenNode(n.If.Exp)
 
-	lbl := fmt.Sprintf(".L%d", localCount)
+	code += "	/* If */\n"
+	code += "	popq	%rax\n"
+	code += "	cmpq	$0, %rax\n"
+
+	// End of the entire if/else block.
+	end := fmt.Sprintf(".L%d", localCount)
 	localCount += 1
 
-	code += "	/* If */\n"
-	code += "	popq	%rax\n" // exp
-	code += "	cmpq	$0, %rax\n"
-	code += fmt.Sprintf("	je	%s\n", lbl)
+	if n.If.ElseBody == nil {
+		code += fmt.Sprintf("	je	%s\n", end)
+		code += codegenNode(n.If.IfBody)
+	} else {
+		elseStart := fmt.Sprintf(".L%d", localCount)
+		localCount += 1
 
-	code += codegenNode(n.If.Body)
+		code += fmt.Sprintf("	je	%s\n", elseStart)
+		code += codegenNode(n.If.IfBody)
+		code += fmt.Sprintf("	jmp	%s\n", end)
+		code += fmt.Sprintf("%s:\n", elseStart)
+		code += codegenNode(n.If.ElseBody)
+	}
 
-	code += fmt.Sprintf("%s:\n", lbl)
+	code += fmt.Sprintf("%s:\n", end)
 
 	return code
 }

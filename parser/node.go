@@ -57,8 +57,9 @@ type Node struct {
 		ArgStart *Node
 	}
 	If struct {
-		Exp  *Node
-		Body *Node
+		Exp      *Node
+		IfBody   *Node
+		ElseBody *Node
 	}
 }
 
@@ -76,7 +77,6 @@ func (n *Node) GetType() types.Type {
 	case NodeFunCall:
 		panic("no support for returning values from functions yet")
 	default:
-		// TODO: seems like a hack
 		return types.None
 	}
 }

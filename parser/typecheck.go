@@ -78,5 +78,6 @@ func (p *Parser) checkIf(n *Node) {
 			"expected boolean type in expression")
 	}
 
-	p.TypeCheck(n.If.Body)
+	p.TypeCheck(n.If.IfBody)
+	p.TypeCheck(n.If.ElseBody)
 }

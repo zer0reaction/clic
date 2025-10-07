@@ -155,7 +155,12 @@ func (p *Parser) parseList() *Node {
 
 		p.discard()
 		n.If.Exp = p.parseItem()
-		n.If.Body = p.parseList()
+		n.If.IfBody = p.parseList()
+
+		if p.peek(0).tag == tokenElse {
+			p.discard()
+			n.If.ElseBody = p.parseList()
+		}
 	default:
 		p.reportHere(&n,
 			report.ReportFatal,
