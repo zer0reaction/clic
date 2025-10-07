@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"lisp-go/codegen"
 	"lisp-go/parser"
 	"lisp-go/report"
@@ -11,7 +12,6 @@ import (
 )
 
 func main() {
-	output := flag.String("o", "out", "Output executable file path")
 	backend := flag.String("b", "gcc", "Compiler backend")
 	backendFlags := flag.String("bf", "", "Backend flags")
 	flag.Parse()
@@ -45,11 +45,10 @@ func main() {
 	}
 
 	var cmdFlags []string
-	if len(*backendFlags) > 0 {
-		cmdFlags = []string{"-o", *output, *backendFlags, asmPath}
-	} else {
-		cmdFlags = []string{"-o", *output, asmPath}
+	for _, el := range strings.Split(*backendFlags, " ") {
+		cmdFlags = append(cmdFlags, el)
 	}
+	cmdFlags = append(cmdFlags, asmPath)
 
 	cmd := exec.Command(*backend, cmdFlags...)
 	fmt.Printf("[backend] executing %s\n", cmd)

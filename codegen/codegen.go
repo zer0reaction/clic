@@ -160,6 +160,56 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	/* BinOpAssign */\n"
 		code += "	popq	%rax\n"
 		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
+	case parser.BinOpEq:
+		code += rval
+		code += lval
+		code += "	/* BinOpEq */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	sete	%sil\n"
+		code += "	pushq	%rsi\n"
+	case parser.BinOpLessEq:
+		code += rval
+		code += lval
+		code += "	/* BinOpLessEq */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	setle	%sil\n"
+		code += "	pushq	%rsi\n"
+	case parser.BinOpLess:
+		code += rval
+		code += lval
+		code += "	/* BinOpLess */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	setl	%sil\n"
+		code += "	pushq	%rsi\n"
+	case parser.BinOpGreatEq:
+		code += rval
+		code += lval
+		code += "	/* BinOpGreatEq */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	setge	%sil\n"
+		code += "	pushq	%rsi\n"
+	case parser.BinOpGreat:
+		code += rval
+		code += lval
+		code += "	/* BinOpGreat */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	setg	%sil\n"
+		code += "	pushq	%rsi\n"
 	default:
 		panic("node type not implemented")
 	}

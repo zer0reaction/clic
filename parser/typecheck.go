@@ -71,6 +71,8 @@ func (p *Parser) checkIf(n *Node) {
 		panic("incorrect node tag")
 	}
 
+	p.TypeCheck(n.If.Exp)
+
 	expType := n.If.Exp.GetType()
 	if expType != types.Bool {
 		p.reportHere(n,

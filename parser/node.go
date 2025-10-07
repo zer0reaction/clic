@@ -29,6 +29,11 @@ const (
 	BinOpSum
 	BinOpSub
 	BinOpAssign
+	BinOpEq
+	BinOpLessEq
+	BinOpLess
+	BinOpGreatEq
+	BinOpGreat
 )
 
 type Node struct {
@@ -73,7 +78,26 @@ func (n *Node) GetType() types.Type {
 	case NodeBoolean:
 		return types.Bool
 	case NodeBinOp:
-		return n.BinOp.Rval.GetType()
+		switch n.BinOp.Tag {
+		case BinOpAssign:
+			return n.BinOp.Rval.GetType()
+		case BinOpSum:
+			return n.BinOp.Rval.GetType()
+		case BinOpSub:
+			return n.BinOp.Rval.GetType()
+		case BinOpEq:
+			return types.Bool
+		case BinOpLessEq:
+			return types.Bool
+		case BinOpLess:
+			return types.Bool
+		case BinOpGreatEq:
+			return types.Bool
+		case BinOpGreat:
+			return types.Bool
+		default:
+			panic("invalid binop tag")
+		}
 	case NodeFunCall:
 		panic("no support for returning values from functions yet")
 	default:

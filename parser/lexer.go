@@ -33,6 +33,11 @@ const (
 	tokenIf
 	tokenElse
 	tokenColEq
+	tokenEq
+	tokenLess
+	tokenLessEq
+	tokenGreat
+	tokenGreatEq
 	tokenS64
 	tokenU64
 	tokenTrue
@@ -65,6 +70,11 @@ var tokenPatterns = []struct {
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenColEq, regexp.MustCompile(`^:=`), false},
+	{tokenEq, regexp.MustCompile(`^==`), false},
+	{tokenLessEq, regexp.MustCompile(`^<=`), false},
+	{tokenLess, regexp.MustCompile(`^<`), false},
+	{tokenGreatEq, regexp.MustCompile(`^>=`), false},
+	{tokenGreat, regexp.MustCompile(`^>`), false},
 	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
 	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
@@ -96,6 +106,16 @@ func (tag tokenTag) toString() string {
 		return "'else'"
 	case tokenColEq:
 		return "':='"
+	case tokenEq:
+		return "'=='"
+	case tokenLessEq:
+		return "'<='"
+	case tokenLess:
+		return "'<'"
+	case tokenGreatEq:
+		return "'>='"
+	case tokenGreat:
+		return "'>'"
 	case tokenS64:
 		return "'s64'"
 	case tokenU64:
