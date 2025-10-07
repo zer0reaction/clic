@@ -73,9 +73,10 @@ func (n *Node) GetType() types.Type {
 		return types.Bool
 	case NodeBinOp:
 		return n.BinOp.Rval.GetType()
-	case NodeIf:
-		return types.None
+	case NodeFunCall:
+		panic("no support for returning values from functions yet")
 	default:
-		panic("node does not have a type")
+		// TODO: seems like a hack
+		return types.None
 	}
 }
