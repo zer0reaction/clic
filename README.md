@@ -43,8 +43,11 @@ void print_s64(int64_t n)
 }
 ```
 
+Command line flags are kind of scuffed at the moment, but you can
+still do something like this:
+
 ```cmd
-go run main.go -bf "extern.c" <file>
+go run main.go -bf "-o out extern.c" <file>
 ```
 
 ### Strong static type system:
