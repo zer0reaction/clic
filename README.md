@@ -30,7 +30,9 @@ go run main.go --help
 
 (let s64 foo)
 (:= foo 1337)
-(print_s64 foo)
+
+(if (> foo 123)
+  (print_s64 foo))
 ```
 
 ```c
