@@ -26,9 +26,23 @@ type BinOpTag uint
 
 const (
 	binOpError BinOpTag = iota
+	BinOpAssign
+	BinOpArith
+	BinOpComp
+)
+
+type BinOpArithTag uint
+
+const (
+	binOpArithError BinOpArithTag = iota
 	BinOpSum
 	BinOpSub
-	BinOpAssign
+)
+
+type BinOpCompTag uint
+
+const (
+	binOpCompError BinOpCompTag = iota
 	BinOpEq
 	BinOpNeq
 	BinOpLessEq
@@ -52,9 +66,11 @@ type Node struct {
 		Value bool
 	}
 	BinOp struct {
-		Tag  BinOpTag
-		Lval *Node
-		Rval *Node
+		Tag      BinOpTag
+		ArithTag BinOpArithTag
+		CompTag  BinOpCompTag
+		Lval     *Node
+		Rval     *Node
 	}
 	Block struct {
 		Start *Node
@@ -74,22 +90,10 @@ func (n *Node) GetType() types.Type {
 	case NodeBinOp:
 		switch n.BinOp.Tag {
 		case BinOpAssign:
+			return n.BinOp.Lval.GetType()
+		case BinOpArith:
 			return n.BinOp.Rval.GetType()
-		case BinOpSum:
-			return n.BinOp.Rval.GetType()
-		case BinOpSub:
-			return n.BinOp.Rval.GetType()
-		case BinOpEq:
-			return types.Bool
-		case BinOpNeq:
-			return types.Bool
-		case BinOpLessEq:
-			return types.Bool
-		case BinOpLess:
-			return types.Bool
-		case BinOpGreatEq:
-			return types.Bool
-		case BinOpGreat:
+		case BinOpComp:
 			return types.Bool
 		default:
 			panic("invalid binop tag")

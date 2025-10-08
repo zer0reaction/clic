@@ -191,21 +191,29 @@ func (p *Parser) parseBinOp(n *Node) {
 	case tokenColEq:
 		n.BinOp.Tag = BinOpAssign
 	case tokenTag('+'):
-		n.BinOp.Tag = BinOpSum
+		n.BinOp.Tag = BinOpArith
+		n.BinOp.ArithTag = BinOpSum
 	case tokenTag('-'):
-		n.BinOp.Tag = BinOpSub
+		n.BinOp.Tag = BinOpArith
+		n.BinOp.ArithTag = BinOpSub
 	case tokenEq:
-		n.BinOp.Tag = BinOpEq
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpEq
 	case tokenNeq:
-		n.BinOp.Tag = BinOpNeq
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpNeq
 	case tokenLessEq:
-		n.BinOp.Tag = BinOpLessEq
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpLessEq
 	case tokenLess:
-		n.BinOp.Tag = BinOpLess
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpLess
 	case tokenGreatEq:
-		n.BinOp.Tag = BinOpGreatEq
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpGreatEq
 	case tokenGreat:
-		n.BinOp.Tag = BinOpGreat
+		n.BinOp.Tag = BinOpComp
+		n.BinOp.CompTag = BinOpGreat
 	default:
 		panic("incorrect binop token")
 	}
