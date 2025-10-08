@@ -71,13 +71,6 @@ type Node struct {
 
 func (n *Node) GetType() types.Type {
 	switch n.Tag {
-	case NodeInteger:
-		return n.Integer.Type
-	case NodeVariable:
-		v := sym.GetVariable(n.Id)
-		return v.Type
-	case NodeBoolean:
-		return types.Bool
 	case NodeBinOp:
 		switch n.BinOp.Tag {
 		case BinOpAssign:
@@ -101,9 +94,25 @@ func (n *Node) GetType() types.Type {
 		default:
 			panic("invalid binop tag")
 		}
-	case NodeFunCall:
-		panic("no support for returning values from functions yet")
-	default:
+	case NodeInteger:
+		return n.Integer.Type
+	case NodeBoolean:
+		return types.Bool
+	case NodeBlock:
 		return types.None
+	case NodeVariableDecl:
+		return types.None
+	case NodeVariable:
+		v := sym.GetVariable(n.Id)
+		return v.Type
+	case NodeFunEx:
+		return types.None
+	case NodeFunCall:
+		// TODO: add checking types
+		return types.None
+	case NodeIf:
+		return types.None
+	default:
+		panic("not implemented")
 	}
 }
