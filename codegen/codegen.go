@@ -128,6 +128,9 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeIf:
 		code += codegenIf(n)
 
+	case parser.NodeWhile:
+		code += codegenWhile(n)
+
 	default:
 		panic("node type not implemented")
 	}
@@ -273,6 +276,27 @@ func codegenIf(n *parser.Node) string {
 		code += codegenNode(n.If.ElseBody)
 	}
 
+	code += fmt.Sprintf("%s:\n", end)
+
+	return code
+}
+
+func codegenWhile(n *parser.Node) string {
+	code := ""
+
+	start := fmt.Sprintf(".L%d", localCount)
+	localCount += 1
+	end := fmt.Sprintf(".L%d", localCount)
+	localCount += 1
+
+	code += "	/* While */\n"
+	code += fmt.Sprintf("%s:\n", start)
+	code += codegenNode(n.While.Exp)
+	code += "	popq	%rax\n"
+	code += "	cmpq	$0, %rax\n"
+	code += fmt.Sprintf("	jz	%s\n", end)
+	code += codegenNode(n.While.Body)
+	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
 
 	return code

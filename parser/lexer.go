@@ -32,6 +32,7 @@ const (
 	tokenExfun
 	tokenIf
 	tokenElse
+	tokenWhile
 	tokenColEq
 	tokenEq
 	tokenNeq
@@ -70,6 +71,7 @@ var tokenPatterns = []struct {
 	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
+	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
 	{tokenColEq, regexp.MustCompile(`^:=`), false},
 	{tokenEq, regexp.MustCompile(`^==`), false},
 	{tokenNeq, regexp.MustCompile(`^!=`), false},
@@ -104,6 +106,8 @@ func (tag tokenTag) toString() string {
 		return "'exfun'"
 	case tokenIf:
 		return "'if'"
+	case tokenWhile:
+		return "'while'"
 	case tokenElse:
 		return "'else'"
 	case tokenColEq:

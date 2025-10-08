@@ -45,13 +45,25 @@ func (p *Parser) TypeCheck(n *Node) {
 
 		expType := n.If.Exp.GetType()
 		if expType != types.Bool {
-			p.reportHere(n,
+			p.reportHere(n.If.Exp,
 				report.ReportNonfatal,
-				"expected boolean type in expression")
+				"expected boolean type")
 		}
 
 		p.TypeCheck(n.If.IfBody)
 		p.TypeCheck(n.If.ElseBody)
+
+	case NodeWhile:
+		p.TypeCheck(n.While.Exp)
+
+		expType := n.While.Exp.GetType()
+		if expType != types.Bool {
+			p.reportHere(n.While.Exp,
+				report.ReportNonfatal,
+				"expected boolean type")
+		}
+
+		p.TypeCheck(n.While.Body)
 
 	// do nothing
 	case NodeInteger:

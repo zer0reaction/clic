@@ -173,6 +173,12 @@ func (p *Parser) parseList() *Node {
 			p.discard()
 			n.If.ElseBody = p.parseList()
 		}
+	case tokenWhile:
+		n.Tag = NodeWhile
+
+		p.discard()
+		n.While.Exp = p.parseItem()
+		n.While.Body = p.parseList()
 	default:
 		p.reportHere(&n,
 			report.ReportFatal,

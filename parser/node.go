@@ -20,6 +20,7 @@ const (
 	NodeFunEx
 	NodeFunCall
 	NodeIf
+	NodeWhile
 )
 
 type BinOpTag uint
@@ -82,6 +83,10 @@ type Node struct {
 		Exp      *Node
 		IfBody   *Node
 		ElseBody *Node
+	}
+	While struct {
+		Exp  *Node
+		Body *Node
 	}
 }
 
