@@ -30,6 +30,7 @@ const (
 	BinOpSub
 	BinOpAssign
 	BinOpEq
+	BinOpNeq
 	BinOpLessEq
 	BinOpLess
 	BinOpGreatEq
@@ -86,6 +87,8 @@ func (n *Node) GetType() types.Type {
 		case BinOpSub:
 			return n.BinOp.Rval.GetType()
 		case BinOpEq:
+			return types.Bool
+		case BinOpNeq:
 			return types.Bool
 		case BinOpLessEq:
 			return types.Bool

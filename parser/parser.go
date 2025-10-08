@@ -80,6 +80,8 @@ func (p *Parser) parseList() *Node {
 		p.parseBinOp(&n)
 	case tokenEq:
 		p.parseBinOp(&n)
+	case tokenNeq:
+		p.parseBinOp(&n)
 	case tokenLessEq:
 		p.parseBinOp(&n)
 	case tokenLess:
@@ -194,6 +196,8 @@ func (p *Parser) parseBinOp(n *Node) {
 		n.BinOp.Tag = BinOpSub
 	case tokenEq:
 		n.BinOp.Tag = BinOpEq
+	case tokenNeq:
+		n.BinOp.Tag = BinOpNeq
 	case tokenLessEq:
 		n.BinOp.Tag = BinOpLessEq
 	case tokenLess:

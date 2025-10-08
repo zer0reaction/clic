@@ -170,6 +170,16 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	cmpq	%rdi, %rax\n"
 		code += "	sete	%sil\n"
 		code += "	pushq	%rsi\n"
+	case parser.BinOpNeq:
+		code += rval
+		code += lval
+		code += "	/* BinOpNeq */\n"
+		code += "	popq	%rax\n" // lval
+		code += "	popq	%rdi\n" // rval
+		code += "	xorq	%rsi, %rsi\n"
+		code += "	cmpq	%rdi, %rax\n"
+		code += "	setne	%sil\n"
+		code += "	pushq	%rsi\n"
 	case parser.BinOpLessEq:
 		code += rval
 		code += lval

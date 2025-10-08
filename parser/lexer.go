@@ -34,6 +34,7 @@ const (
 	tokenElse
 	tokenColEq
 	tokenEq
+	tokenNeq
 	tokenLess
 	tokenLessEq
 	tokenGreat
@@ -71,6 +72,7 @@ var tokenPatterns = []struct {
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenColEq, regexp.MustCompile(`^:=`), false},
 	{tokenEq, regexp.MustCompile(`^==`), false},
+	{tokenNeq, regexp.MustCompile(`^!=`), false},
 	{tokenLessEq, regexp.MustCompile(`^<=`), false},
 	{tokenLess, regexp.MustCompile(`^<`), false},
 	{tokenGreatEq, regexp.MustCompile(`^>=`), false},
@@ -108,6 +110,8 @@ func (tag tokenTag) toString() string {
 		return "':='"
 	case tokenEq:
 		return "'=='"
+	case tokenNeq:
+		return "'!='"
 	case tokenLessEq:
 		return "'<='"
 	case tokenLess:
