@@ -28,9 +28,8 @@ func New(fileName string, data string) *Parser {
 	}
 }
 
-func (p *Parser) CreateAST() *Node {
-	var head *Node = nil
-	var tail *Node = nil
+func (p *Parser) CreateASTs() []*Node {
+	var roots []*Node
 
 	for {
 		lookahead := p.peek(0)
@@ -38,18 +37,11 @@ func (p *Parser) CreateAST() *Node {
 			break
 		}
 
-		n := p.parseList()
-
-		if tail == nil {
-			head = n
-			tail = n
-		} else {
-			tail.Next = n
-			tail = tail.Next
-		}
+		node := p.parseList()
+		roots = append(roots, node)
 	}
 
-	return head
+	return roots
 }
 
 func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
@@ -96,7 +88,7 @@ func (p *Parser) parseList() *Node {
 		sym.PushBlock()
 
 		items := p.collectItems()
-		n.Block.Start = items
+		n.Block.Stmts = items
 
 		sym.PopBlock()
 	case tokenLet:
@@ -161,7 +153,7 @@ func (p *Parser) parseList() *Node {
 		n.Id = id
 
 		items := p.collectItems()
-		n.Function.ArgStart = items
+		n.Function.Args = items
 	case tokenIf:
 		n.Tag = NodeIf
 
@@ -228,9 +220,8 @@ func (p *Parser) parseBinOp(n *Node) {
 	n.BinOp.Rval = p.parseItem()
 }
 
-func (p *Parser) collectItems() *Node {
-	var head *Node = nil
-	var tail *Node = nil
+func (p *Parser) collectItems() []*Node {
+	var items []*Node
 
 	for {
 		lookahead := p.peek(0)
@@ -239,17 +230,10 @@ func (p *Parser) collectItems() *Node {
 		}
 
 		item := p.parseItem()
-
-		if tail == nil {
-			head = item
-			tail = item
-		} else {
-			tail.Next = item
-			tail = tail.Next
-		}
+		items = append(items, item)
 	}
 
-	return head
+	return items
 }
 
 func (p *Parser) parseItem() *Node {

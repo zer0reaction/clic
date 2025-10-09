@@ -54,7 +54,6 @@ const (
 
 type Node struct {
 	Tag    NodeTag
-	Next   *Node
 	Id     sym.SymbolId
 	Line   uint
 	Column uint
@@ -74,10 +73,10 @@ type Node struct {
 		Rval     *Node
 	}
 	Block struct {
-		Start *Node
+		Stmts []*Node
 	}
 	Function struct {
-		ArgStart *Node
+		Args []*Node
 	}
 	If struct {
 		Exp      *Node

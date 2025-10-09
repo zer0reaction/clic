@@ -30,13 +30,13 @@ func main() {
 
 	p := parser.New(input, string(data))
 
-	root := p.CreateAST()
+	roots := p.CreateASTs()
 	report.ExitOnErrors(1)
 
-	p.TypeCheck(root)
+	p.TypeCheck(roots)
 	report.ExitOnErrors(1)
 
-	asm := codegen.Codegen(root)
+	asm := codegen.Codegen(roots)
 	asmPath := "/tmp/cli.s"
 	err = os.WriteFile(asmPath, []byte(asm), 0666)
 	if err != nil {

@@ -10,15 +10,21 @@ import (
 	"lisp-go/types"
 )
 
-func (p *Parser) TypeCheck(n *Node) {
+func (p *Parser) TypeCheck(roots []*Node) {
+	for _, node := range roots {
+		p.checkNode(node)
+	}
+}
+
+func (p *Parser) checkNode(n *Node) {
 	if n == nil {
 		return
 	}
 
 	switch n.Tag {
 	case NodeBinOp:
-		p.TypeCheck(n.BinOp.Lval)
-		p.TypeCheck(n.BinOp.Rval)
+		p.checkNode(n.BinOp.Lval)
+		p.checkNode(n.BinOp.Rval)
 
 		lvalType := n.BinOp.Lval.GetType()
 		rvalType := n.BinOp.Rval.GetType()
@@ -35,13 +41,14 @@ func (p *Parser) TypeCheck(n *Node) {
 				report.ReportNonfatal,
 				"lvalue is not a storage location")
 		}
-		p.TypeCheck(n.Block.Start)
 
 	case NodeFunCall:
-		p.TypeCheck(n.Function.ArgStart)
+		for _, node := range n.Function.Args {
+			p.checkNode(node)
+		}
 
 	case NodeIf:
-		p.TypeCheck(n.If.Exp)
+		p.checkNode(n.If.Exp)
 
 		expType := n.If.Exp.GetType()
 		if expType != types.Bool {
@@ -50,11 +57,11 @@ func (p *Parser) TypeCheck(n *Node) {
 				"expected boolean type")
 		}
 
-		p.TypeCheck(n.If.IfBody)
-		p.TypeCheck(n.If.ElseBody)
+		p.checkNode(n.If.IfBody)
+		p.checkNode(n.If.ElseBody)
 
 	case NodeWhile:
-		p.TypeCheck(n.While.Exp)
+		p.checkNode(n.While.Exp)
 
 		expType := n.While.Exp.GetType()
 		if expType != types.Bool {
@@ -63,12 +70,16 @@ func (p *Parser) TypeCheck(n *Node) {
 				"expected boolean type")
 		}
 
-		p.TypeCheck(n.While.Body)
+		p.checkNode(n.While.Body)
+
+	case NodeBlock:
+		for _, node := range n.Block.Stmts {
+			p.checkNode(node)
+		}
 
 	// do nothing
 	case NodeInteger:
 	case NodeBoolean:
-	case NodeBlock:
 	case NodeVariableDecl:
 	case NodeVariable:
 	case NodeFunEx:
@@ -76,6 +87,4 @@ func (p *Parser) TypeCheck(n *Node) {
 	default:
 		panic("node not implemented")
 	}
-
-	p.TypeCheck(n.Next)
 }

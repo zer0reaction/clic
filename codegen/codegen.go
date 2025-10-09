@@ -25,13 +25,12 @@ var externDecls = ""
 
 var localCount = 0
 
-func Codegen(root *parser.Node) string {
+func Codegen(roots []*parser.Node) string {
 	code := ""
 
 	tmp := ""
-	for root != nil {
-		tmp += codegenNode(root)
-		root = root.Next
+	for _, node := range roots {
+		tmp += codegenNode(node)
 	}
 
 	code += ".section .text\n"
@@ -66,10 +65,8 @@ func codegenNode(n *parser.Node) string {
 
 	switch n.Tag {
 	case parser.NodeBlock:
-		cur := n.Block.Start
-		for cur != nil {
-			code += codegenNode(cur)
-			cur = cur.Next
+		for _, node := range n.Block.Stmts {
+			code += codegenNode(node)
 		}
 
 	case parser.NodeVariableDecl:
@@ -98,19 +95,15 @@ func codegenNode(n *parser.Node) string {
 		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
 
 	case parser.NodeFunCall:
-		cur := n.Function.ArgStart
-		argCount := 0
-
 		code += "	/* FunCall */\n"
 
-		for cur != nil {
-			if argCount >= len(argRegisters) {
-				panic("arguments on stack are not supported yet")
-			}
-			code += codegenNode(cur)
-			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[argCount])
-			argCount++
-			cur = cur.Next
+		if len(n.Function.Args) >= len(argRegisters) {
+			panic("arguments on stack are not supported yet")
+		}
+
+		for i, node := range n.Function.Args {
+			code += codegenNode(node)
+			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[i])
 		}
 
 		f := sym.GetFunction(n.Id)
