@@ -34,8 +34,7 @@ const (
 	tokenElse
 	tokenWhile
 	tokenBinOp
-	tokenS64
-	tokenU64
+	tokenType
 	tokenTrue
 	tokenFalse
 
@@ -67,8 +66,7 @@ var tokenPatterns = []struct {
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
 	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+)`), true},
-	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
-	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
+	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b)`), true},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
 	{tokenFalse, regexp.MustCompile(`^\bfalse\b`), false},
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
@@ -97,10 +95,8 @@ func (tag tokenTag) toString() string {
 		return "'else'"
 	case tokenBinOp:
 		return "binary operator"
-	case tokenS64:
-		return "'s64'"
-	case tokenU64:
-		return "'u64'"
+	case tokenType:
+		return "type"
 	case tokenTrue:
 		return "'true'"
 	case tokenFalse:

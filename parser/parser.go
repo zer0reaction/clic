@@ -79,21 +79,10 @@ func (p *Parser) parseList() *Node {
 		p.discard()
 
 		n.Tag = NodeVariableDecl
-		v := sym.Variable{}
-
-		switch p.consume().tag {
-		case tokenS64:
-			v.Type = types.S64
-		case tokenU64:
-			v.Type = types.U64
-		default:
-			p.reportHere(&n,
-				report.ReportFatal,
-				"expected type here")
+		v := sym.Variable{
+			Type: p.parseType(),
+			Name: p.match(tokenIdent).data,
 		}
-
-		t := p.match(tokenIdent)
-		v.Name = t.data
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
 			p.reportHere(&n,
@@ -250,11 +239,33 @@ func (p *Parser) parseBinOp(n *Node) {
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpGreat
 	default:
-		panic("incorrect binop token")
+		panic("not implemented")
 	}
 
 	n.BinOp.Lval = p.parseItem()
 	n.BinOp.Rval = p.parseItem()
+}
+
+func (p *Parser) parseType() types.Type {
+	t := p.consume()
+	if t.tag != tokenType {
+		report.Report(report.Form{
+			Tag:    report.ReportFatal,
+			File:   p.fileName,
+			Line:   t.line,
+			Column: t.column,
+			Msg:    "expected type",
+		})
+	}
+
+	switch t.data {
+	case "s64":
+		return types.S64
+	case "u64":
+		return types.U64
+	default:
+		panic("not implemented")
+	}
 }
 
 func (p *Parser) collectItems() []*Node {
