@@ -166,6 +166,59 @@ func (p *Parser) parseList() *Node {
 	return &n
 }
 
+func (p *Parser) parseItem() *Node {
+	lookahead := p.peek(0)
+	n := Node{
+		Line:   lookahead.line,
+		Column: lookahead.column,
+	}
+
+	switch lookahead.tag {
+	case tokenInteger:
+		t := p.peek(0)
+
+		p.discard()
+
+		n.Tag = NodeInteger
+		// TODO: this is not clear, add a cast?
+		n.Integer.Type = types.S64
+
+		value, err := strconv.ParseInt(t.data, 0, 64)
+		if err != nil {
+			panic("incorrect integer data")
+		}
+		n.Integer.Value = value
+	case tokenIdent:
+		t := p.consume()
+
+		n.Tag = NodeVariable
+
+		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
+		if id == sym.SymbolIdNone {
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"variable does not exist")
+		}
+		n.Id = id
+	case tokenTrue:
+		p.discard()
+		n.Tag = NodeBoolean
+		n.Boolean.Value = true
+	case tokenFalse:
+		p.discard()
+		n.Tag = NodeBoolean
+		n.Boolean.Value = false
+	case tokenTag('('):
+		return p.parseList()
+	default:
+		p.reportHere(&n,
+			report.ReportFatal,
+			"incorrect list item")
+	}
+
+	return &n
+}
+
 func (p *Parser) parseBinOp(n *Node) {
 	n.Tag = NodeBinOp
 
@@ -218,57 +271,4 @@ func (p *Parser) collectItems() []*Node {
 	}
 
 	return items
-}
-
-func (p *Parser) parseItem() *Node {
-	lookahead := p.peek(0)
-	n := Node{
-		Line:   lookahead.line,
-		Column: lookahead.column,
-	}
-
-	switch lookahead.tag {
-	case tokenInteger:
-		t := p.peek(0)
-
-		p.discard()
-
-		n.Tag = NodeInteger
-		// TODO: this is not clear, add a cast?
-		n.Integer.Type = types.S64
-
-		value, err := strconv.ParseInt(t.data, 0, 64)
-		if err != nil {
-			panic("incorrect integer data")
-		}
-		n.Integer.Value = value
-	case tokenIdent:
-		t := p.consume()
-
-		n.Tag = NodeVariable
-
-		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
-		if id == sym.SymbolIdNone {
-			p.reportHere(&n,
-				report.ReportNonfatal,
-				"variable does not exist")
-		}
-		n.Id = id
-	case tokenTrue:
-		p.discard()
-		n.Tag = NodeBoolean
-		n.Boolean.Value = true
-	case tokenFalse:
-		p.discard()
-		n.Tag = NodeBoolean
-		n.Boolean.Value = false
-	case tokenTag('('):
-		return p.parseList()
-	default:
-		p.reportHere(&n,
-			report.ReportFatal,
-			"incorrect list item")
-	}
-
-	return &n
 }
