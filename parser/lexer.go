@@ -33,13 +33,7 @@ const (
 	tokenIf
 	tokenElse
 	tokenWhile
-	tokenColEq
-	tokenEq
-	tokenNeq
-	tokenLess
-	tokenLessEq
-	tokenGreat
-	tokenGreatEq
+	tokenBinOp
 	tokenS64
 	tokenU64
 	tokenTrue
@@ -72,13 +66,7 @@ var tokenPatterns = []struct {
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
-	{tokenColEq, regexp.MustCompile(`^:=`), false},
-	{tokenEq, regexp.MustCompile(`^==`), false},
-	{tokenNeq, regexp.MustCompile(`^!=`), false},
-	{tokenLessEq, regexp.MustCompile(`^<=`), false},
-	{tokenLess, regexp.MustCompile(`^<`), false},
-	{tokenGreatEq, regexp.MustCompile(`^>=`), false},
-	{tokenGreat, regexp.MustCompile(`^>`), false},
+	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+)`), true},
 	{tokenS64, regexp.MustCompile(`^\bs64\b`), false},
 	{tokenU64, regexp.MustCompile(`^\bu64\b`), false},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
@@ -87,9 +75,6 @@ var tokenPatterns = []struct {
 	{tokenTag(')'), regexp.MustCompile(`^\)`), false},
 
 	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
-
-	{tokenTag('+'), regexp.MustCompile(`^\+`), false},
-	{tokenTag('-'), regexp.MustCompile(`^\-`), false},
 
 	{tokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
@@ -110,20 +95,8 @@ func (tag tokenTag) toString() string {
 		return "'while'"
 	case tokenElse:
 		return "'else'"
-	case tokenColEq:
-		return "':='"
-	case tokenEq:
-		return "'=='"
-	case tokenNeq:
-		return "'!='"
-	case tokenLessEq:
-		return "'<='"
-	case tokenLess:
-		return "'<'"
-	case tokenGreatEq:
-		return "'>='"
-	case tokenGreat:
-		return "'>'"
+	case tokenBinOp:
+		return "binary operator"
 	case tokenS64:
 		return "'s64'"
 	case tokenU64:

@@ -64,23 +64,7 @@ func (p *Parser) parseList() *Node {
 	}
 
 	switch lookahead.tag {
-	case tokenColEq:
-		p.parseBinOp(&n)
-	case tokenTag('+'):
-		p.parseBinOp(&n)
-	case tokenTag('-'):
-		p.parseBinOp(&n)
-	case tokenEq:
-		p.parseBinOp(&n)
-	case tokenNeq:
-		p.parseBinOp(&n)
-	case tokenLessEq:
-		p.parseBinOp(&n)
-	case tokenLess:
-		p.parseBinOp(&n)
-	case tokenGreatEq:
-		p.parseBinOp(&n)
-	case tokenGreat:
+	case tokenBinOp:
 		p.parseBinOp(&n)
 	case tokenTag('('):
 		n.Tag = NodeBlock
@@ -185,31 +169,31 @@ func (p *Parser) parseList() *Node {
 func (p *Parser) parseBinOp(n *Node) {
 	n.Tag = NodeBinOp
 
-	switch p.consume().tag {
-	case tokenColEq:
+	switch p.consume().data {
+	case ":=":
 		n.BinOp.Tag = BinOpAssign
-	case tokenTag('+'):
+	case "+":
 		n.BinOp.Tag = BinOpArith
 		n.BinOp.ArithTag = BinOpSum
-	case tokenTag('-'):
+	case "-":
 		n.BinOp.Tag = BinOpArith
 		n.BinOp.ArithTag = BinOpSub
-	case tokenEq:
+	case "==":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpEq
-	case tokenNeq:
+	case "!=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpNeq
-	case tokenLessEq:
+	case "<=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpLessEq
-	case tokenLess:
+	case "<":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpLess
-	case tokenGreatEq:
+	case ">=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpGreatEq
-	case tokenGreat:
+	case ">":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpGreat
 	default:
