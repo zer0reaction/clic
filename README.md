@@ -2,9 +2,8 @@
 
 ## The name
 
-**CLI** - **C** **LI**sp (pronounced as *silly*). The goal was to
-create a C-like language with lisp-like syntax (I don't know lisp
-though, rofl).
+**CLI** - **C** **LI**sp. The goal was to create a C-like language
+with lisp-like syntax (I don't know lisp though, rofl).
 
 CLI is currently a [stack
 machine](https://en.wikipedia.org/wiki/Stack_machine).
@@ -26,9 +25,9 @@ go run main.go --help
 ### Linking with C funcitons:
 
 ```lisp
-(exfun print_s64)
+(exfun print_s64 (n: s64))
 
-(let s64 foo)
+(let foo: s64)
 (:= foo 1337)
 
 (if (> foo 123)
@@ -41,7 +40,7 @@ go run main.go --help
 
 void print_s64(int64_t n)
 {
-	printf("%ld\n", n);
+    printf("%ld\n", n);
 }
 ```
 
@@ -55,9 +54,9 @@ go run main.go -bf "-o out extern.c" <file>
 ### Strong static type system:
 
 The following code will not compile. By default all integers are of
-type s64.
+type `s64`.
 
 ```lisp
-(let u64 foo)
+(let foo: u64)
 (:= foo 1337)
 ```
