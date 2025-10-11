@@ -62,9 +62,11 @@ type Node struct {
 		Value int64
 		Type  types.Type
 	}
+
 	Boolean struct {
 		Value bool
 	}
+
 	BinOp struct {
 		Tag      BinOpTag
 		ArithTag BinOpArithTag
@@ -72,17 +74,21 @@ type Node struct {
 		Lval     *Node
 		Rval     *Node
 	}
+
 	Block struct {
 		Stmts []*Node
 	}
-	Function struct {
+
+	FunCall struct {
 		Args []*Node
 	}
+
 	If struct {
 		Exp      *Node
 		IfBody   *Node
 		ElseBody *Node
 	}
+
 	While struct {
 		Exp  *Node
 		Body *Node

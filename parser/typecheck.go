@@ -43,7 +43,7 @@ func (p *Parser) checkNode(n *Node) {
 		}
 
 	case NodeFunCall:
-		for _, node := range n.Function.Args {
+		for _, node := range n.FunCall.Args {
 			p.checkNode(node)
 		}
 

@@ -126,7 +126,7 @@ func (p *Parser) parseList() *Node {
 		n.Id = id
 
 		items := p.collectItems()
-		n.Function.Args = items
+		n.FunCall.Args = items
 	case tokenIf:
 		n.Tag = NodeIf
 
