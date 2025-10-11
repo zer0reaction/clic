@@ -37,6 +37,7 @@ func Report(f Form) {
 		fmt.Printf("%s:%d:%d: fatal: %s\n",
 			f.File, f.Line, f.Column, f.Msg)
 		os.Exit(1)
+
 	case ReportNonfatal:
 		fmt.Printf("%s:%d:%d: error: %s\n",
 			f.File, f.Line, f.Column, f.Msg)

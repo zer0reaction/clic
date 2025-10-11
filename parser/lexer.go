@@ -85,28 +85,40 @@ func (tag tokenTag) toString() string {
 	switch tag {
 	case tokenLet:
 		return "'let'"
+
 	case tokenExfun:
 		return "'exfun'"
+
 	case tokenIf:
 		return "'if'"
+
 	case tokenWhile:
 		return "'while'"
+
 	case tokenElse:
 		return "'else'"
+
 	case tokenBinOp:
 		return "binary operator"
+
 	case tokenType:
 		return "type"
+
 	case tokenTrue:
 		return "'true'"
+
 	case tokenFalse:
 		return "'false'"
+
 	case tokenInteger:
 		return "integer literal"
+
 	case tokenIdent:
 		return "identifier"
+
 	case tokenEOF:
 		return "EOF"
+
 	default:
 		panic("unrecognized token")
 	}
@@ -151,11 +163,14 @@ blankLoop:
 		switch p.l.data[0] {
 		case ' ':
 			p.l.column += 1
+
 		case '\t':
 			p.l.column += 1
+
 		case '\n':
 			p.l.column = 1
 			p.l.line += 1
+
 		default:
 			break blankLoop
 		}

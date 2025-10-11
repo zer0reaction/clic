@@ -101,31 +101,43 @@ func (n *Node) GetType() types.Type {
 		switch n.BinOp.Tag {
 		case BinOpAssign:
 			return n.BinOp.Lval.GetType()
+
 		case BinOpArith:
 			return n.BinOp.Rval.GetType()
+
 		case BinOpComp:
 			return types.Bool
+
 		default:
 			panic("invalid binop tag")
 		}
+
 	case NodeInteger:
 		return n.Integer.Type
+
 	case NodeBoolean:
 		return types.Bool
+
 	case NodeBlock:
 		return types.None
+
 	case NodeVariableDecl:
 		return types.None
+
 	case NodeVariable:
 		v := sym.GetVariable(n.Id)
 		return v.Type
+
 	case NodeFunEx:
 		return types.None
+
 	case NodeFunCall:
 		// TODO: add checking types
 		return types.None
+
 	case NodeIf:
 		return types.None
+
 	default:
 		panic("not implemented")
 	}

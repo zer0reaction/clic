@@ -66,6 +66,7 @@ func (p *Parser) parseList() *Node {
 	switch lookahead.tag {
 	case tokenBinOp:
 		p.parseBinOp(&n)
+
 	case tokenTag('('):
 		n.Tag = NodeBlock
 
@@ -75,6 +76,7 @@ func (p *Parser) parseList() *Node {
 		n.Block.Stmts = items
 
 		sym.PopBlock()
+
 	case tokenLet:
 		p.discard()
 
@@ -93,6 +95,7 @@ func (p *Parser) parseList() *Node {
 		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
 		sym.SetVariable(id, v)
 		n.Id = id
+
 	case tokenExfun:
 		p.discard()
 
@@ -112,6 +115,7 @@ func (p *Parser) parseList() *Node {
 			Name: name,
 		})
 		n.Id = id
+
 	case tokenIdent:
 		t := p.consume()
 
@@ -127,6 +131,7 @@ func (p *Parser) parseList() *Node {
 
 		items := p.collectItems()
 		n.FunCall.Args = items
+
 	case tokenIf:
 		n.Tag = NodeIf
 
@@ -138,12 +143,14 @@ func (p *Parser) parseList() *Node {
 			p.discard()
 			n.If.ElseBody = p.parseList()
 		}
+
 	case tokenWhile:
 		n.Tag = NodeWhile
 
 		p.discard()
 		n.While.Exp = p.parseItem()
 		n.While.Body = p.parseList()
+
 	default:
 		p.reportHere(&n,
 			report.ReportFatal,
@@ -177,6 +184,7 @@ func (p *Parser) parseItem() *Node {
 			panic("incorrect integer data")
 		}
 		n.Integer.Value = value
+
 	case tokenIdent:
 		t := p.consume()
 
@@ -189,16 +197,20 @@ func (p *Parser) parseItem() *Node {
 				"variable does not exist")
 		}
 		n.Id = id
+
 	case tokenTrue:
 		p.discard()
 		n.Tag = NodeBoolean
 		n.Boolean.Value = true
+
 	case tokenFalse:
 		p.discard()
 		n.Tag = NodeBoolean
 		n.Boolean.Value = false
+
 	case tokenTag('('):
 		return p.parseList()
+
 	default:
 		p.reportHere(&n,
 			report.ReportFatal,
@@ -214,30 +226,39 @@ func (p *Parser) parseBinOp(n *Node) {
 	switch p.consume().data {
 	case ":=":
 		n.BinOp.Tag = BinOpAssign
+
 	case "+":
 		n.BinOp.Tag = BinOpArith
 		n.BinOp.ArithTag = BinOpSum
+
 	case "-":
 		n.BinOp.Tag = BinOpArith
 		n.BinOp.ArithTag = BinOpSub
+
 	case "==":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpEq
+
 	case "!=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpNeq
+
 	case "<=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpLessEq
+
 	case "<":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpLess
+
 	case ">=":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpGreatEq
+
 	case ">":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpGreat
+
 	default:
 		panic("not implemented")
 	}
@@ -261,8 +282,10 @@ func (p *Parser) parseType() types.Type {
 	switch t.data {
 	case "s64":
 		return types.S64
+
 	case "u64":
 		return types.U64
+
 	default:
 		panic("not implemented")
 	}

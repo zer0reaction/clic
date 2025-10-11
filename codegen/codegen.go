@@ -157,6 +157,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	popq	%rdi\n" // rval
 			code += "	addq	%rdi, %rax\n"
 			code += "	pushq	%rax\n"
+
 		case parser.BinOpSub:
 			code += rval
 			code += lval
@@ -165,6 +166,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	popq	%rdi\n" // rval
 			code += "	subq	%rdi, %rax\n"
 			code += "	pushq	%rax\n"
+
 		default:
 			panic("invalid arith tag")
 		}
@@ -181,6 +183,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	sete	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		case parser.BinOpNeq:
 			code += rval
 			code += lval
@@ -191,6 +194,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	setne	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		case parser.BinOpLessEq:
 			code += rval
 			code += lval
@@ -201,6 +205,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	setle	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		case parser.BinOpLess:
 			code += rval
 			code += lval
@@ -211,6 +216,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	setl	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		case parser.BinOpGreatEq:
 			code += rval
 			code += lval
@@ -221,6 +227,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	setge	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		case parser.BinOpGreat:
 			code += rval
 			code += lval
@@ -231,6 +238,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	cmpq	%rdi, %rax\n"
 			code += "	setg	%sil\n"
 			code += "	pushq	%rsi\n"
+
 		default:
 			panic("invalid comp tag")
 		}
