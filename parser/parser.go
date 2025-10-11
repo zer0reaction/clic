@@ -83,10 +83,7 @@ func (p *Parser) parseList() *Node {
 		n.Tag = NodeVariableDecl
 
 		v := sym.Variable{}
-
-		v.Name = p.match(tokenIdent).data
-		p.match(tokenTag(':'))
-		v.Type = p.parseType()
+		v.Name, v.Type = p.parseNameWithType()
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
 			p.reportHere(&n,
@@ -270,16 +267,7 @@ func (p *Parser) parseBinOp(n *Node) {
 }
 
 func (p *Parser) parseType() types.Type {
-	t := p.consume()
-	if t.tag != tokenType {
-		report.Report(report.Form{
-			Tag:    report.ReportFatal,
-			File:   p.fileName,
-			Line:   t.line,
-			Column: t.column,
-			Msg:    "expected type",
-		})
-	}
+	t := p.match(tokenType)
 
 	switch t.data {
 	case "s64":
@@ -291,6 +279,13 @@ func (p *Parser) parseType() types.Type {
 	default:
 		panic("not implemented")
 	}
+}
+
+func (p *Parser) parseNameWithType() (string, types.Type) {
+	name := p.match(tokenIdent).data
+	p.match(tokenTag(':'))
+	type_ := p.parseType()
+	return name, type_
 }
 
 func (p *Parser) collectItems() []*Node {
