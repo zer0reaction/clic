@@ -81,10 +81,12 @@ func (p *Parser) parseList() *Node {
 		p.discard()
 
 		n.Tag = NodeVariableDecl
-		v := sym.Variable{
-			Type: p.parseType(),
-			Name: p.match(tokenIdent).data,
-		}
+
+		v := sym.Variable{}
+
+		v.Name = p.match(tokenIdent).data
+		p.match(tokenTag(':'))
+		v.Type = p.parseType()
 
 		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
 			p.reportHere(&n,
