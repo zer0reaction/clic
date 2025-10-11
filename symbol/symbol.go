@@ -26,8 +26,14 @@ type Variable struct {
 	Offset uint // subtracted from RBP
 }
 
-type Function struct {
+type TypedIdent struct {
 	Name string
+	Type types.Type
+}
+
+type Function struct {
+	Name   string
+	Params []TypedIdent
 }
 
 type symbol struct {
@@ -60,6 +66,10 @@ func PopBlock() {
 	}
 	current = current.prev
 }
+
+// TODO: Change error reporting to Report(). Also, this does not
+// handle the situation if symbol is declared twice in the current
+// block and panics. Too bad.
 
 func AddSymbol(name string, tag SymbolTag) SymbolId {
 	_, ok := current.data[name]

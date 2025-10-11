@@ -4,6 +4,7 @@
 
 package types
 
+// TODO: add ToString() and add to error reports
 type Type uint
 
 const (

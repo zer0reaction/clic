@@ -65,15 +65,17 @@ var tokenPatterns = []struct {
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
-	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+)`), true},
 	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b)`), true},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
 	{tokenFalse, regexp.MustCompile(`^\bfalse\b`), false},
+
+	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
+
+	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+)`), true},
+
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
 	{tokenTag(')'), regexp.MustCompile(`^\)`), false},
 	{tokenTag(':'), regexp.MustCompile(`^:`), false},
-
-	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
 
 	{tokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }

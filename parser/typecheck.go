@@ -6,7 +6,9 @@
 package parser
 
 import (
+	"fmt"
 	"lisp-go/report"
+	sym "lisp-go/symbol"
 	"lisp-go/types"
 )
 
@@ -45,6 +47,31 @@ func (p *Parser) checkNode(n *Node) {
 	case NodeFunCall:
 		for _, node := range n.FunCall.Args {
 			p.checkNode(node)
+		}
+
+		fun := sym.GetFunction(n.Id)
+
+		if len(n.FunCall.Args) != len(fun.Params) {
+			var where *Node
+
+			if len(n.FunCall.Args) > 0 {
+				where = n.FunCall.Args[0]
+			} else {
+				where = n
+			}
+
+			p.reportHere(where,
+				report.ReportNonfatal,
+				fmt.Sprintf("expected %d arguments, got %d",
+					len(fun.Params), len(n.FunCall.Args)))
+		}
+
+		for i, arg := range n.FunCall.Args {
+			if arg.GetType() != fun.Params[i].Type {
+				p.reportHere(arg,
+					report.ReportNonfatal,
+					"mismatched types in function call")
+			}
 		}
 
 	case NodeIf:

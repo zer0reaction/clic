@@ -98,21 +98,27 @@ func (p *Parser) parseList() *Node {
 	case tokenExfun:
 		p.discard()
 
-		t := p.match(tokenIdent)
-
 		n.Tag = NodeFunEx
-		name := t.data
+		fun := sym.Function{}
 
-		if sym.LookupGlobal(name, sym.SymbolFunction) != sym.SymbolIdNone {
+		fun.Name = p.match(tokenIdent).data
+
+		if sym.LookupGlobal(fun.Name, sym.SymbolFunction) != sym.SymbolIdNone {
 			p.reportHere(&n,
 				report.ReportNonfatal,
 				"function is already declared")
 		}
 
-		id := sym.AddSymbol(name, sym.SymbolFunction)
-		sym.SetFunction(id, sym.Function{
-			Name: name,
-		})
+		p.match(tokenTag('('))
+		for p.peek(0).tag != tokenTag(')') {
+			param := sym.TypedIdent{}
+			param.Name, param.Type = p.parseNameWithType()
+			fun.Params = append(fun.Params, param)
+		}
+		p.match(tokenTag(')'))
+
+		id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
+		sym.SetFunction(id, fun)
 		n.Id = id
 
 	case tokenIdent:
