@@ -85,15 +85,15 @@ func (p *Parser) parseList() *Node {
 		v := sym.Variable{}
 		v.Name, v.Type = p.parseNameWithType()
 
-		if sym.LookupInBlock(v.Name, sym.SymbolVariable) != sym.SymbolIdNone {
+		if sym.ExistsInBlock(v.Name, sym.SymbolVariable) {
 			p.reportHere(&n,
 				report.ReportNonfatal,
 				"variable is already declared")
+		} else {
+			id := sym.AddSymbol(v.Name, sym.SymbolVariable)
+			sym.SetVariable(id, v)
+			n.Id = id
 		}
-
-		id := sym.AddSymbol(v.Name, sym.SymbolVariable)
-		sym.SetVariable(id, v)
-		n.Id = id
 
 	case tokenExfun:
 		p.discard()
@@ -103,30 +103,32 @@ func (p *Parser) parseList() *Node {
 
 		fun.Name = p.match(tokenIdent).data
 
-		if sym.LookupGlobal(fun.Name, sym.SymbolFunction) != sym.SymbolIdNone {
-			p.reportHere(&n,
-				report.ReportNonfatal,
-				"function is already declared")
-		}
-
 		p.match(tokenTag('('))
+
 		for p.peek(0).tag != tokenTag(')') {
 			param := sym.TypedIdent{}
 			param.Name, param.Type = p.parseNameWithType()
 			fun.Params = append(fun.Params, param)
 		}
+
 		p.match(tokenTag(')'))
 
-		id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
-		sym.SetFunction(id, fun)
-		n.Id = id
+		if sym.ExistsAnywhere(fun.Name, sym.SymbolFunction) {
+			p.reportHere(&n,
+				report.ReportNonfatal,
+				"function is already declared")
+		} else {
+			id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
+			sym.SetFunction(id, fun)
+			n.Id = id
+		}
 
 	case tokenIdent:
 		t := p.consume()
 
 		n.Tag = NodeFunCall
 
-		id := sym.LookupGlobal(t.data, sym.SymbolFunction)
+		id := sym.LookupAnywhere(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
 			p.reportHere(&n,
 				report.ReportNonfatal,
@@ -134,8 +136,7 @@ func (p *Parser) parseList() *Node {
 		}
 		n.Id = id
 
-		items := p.collectItems()
-		n.FunCall.Args = items
+		n.FunCall.Args = p.collectItems()
 
 	case tokenIf:
 		n.Tag = NodeIf
@@ -195,7 +196,7 @@ func (p *Parser) parseItem() *Node {
 
 		n.Tag = NodeVariable
 
-		id := sym.LookupGlobal(t.data, sym.SymbolVariable)
+		id := sym.LookupAnywhere(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
 			p.reportHere(&n,
 				report.ReportNonfatal,

@@ -67,10 +67,6 @@ func PopBlock() {
 	current = current.prev
 }
 
-// TODO: Change error reporting to Report(). Also, this does not
-// handle the situation if symbol is declared twice in the current
-// block and panics. Too bad.
-
 func AddSymbol(name string, tag SymbolTag) SymbolId {
 	_, ok := current.data[name]
 	if ok {
@@ -86,7 +82,28 @@ func AddSymbol(name string, tag SymbolTag) SymbolId {
 	return id
 }
 
-func LookupGlobal(name string, tag SymbolTag) SymbolId {
+func ExistsAnywhere(name string, tag SymbolTag) bool {
+	ptr := current
+
+	for ptr != nil {
+		_, ok := ptr.data[name]
+		if !ok {
+			ptr = ptr.prev
+			continue
+		} else {
+			return true
+		}
+	}
+
+	return false
+}
+
+func ExistsInBlock(name string, tag SymbolTag) bool {
+	_, ok := current.data[name]
+	return ok
+}
+
+func LookupAnywhere(name string, tag SymbolTag) SymbolId {
 	ptr := current
 
 	for ptr != nil {
