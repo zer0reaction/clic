@@ -3,8 +3,8 @@
 package parser
 
 import (
-	sym "lisp-go/symbol"
-	"lisp-go/types"
+	sym "lisp-go/src/symbol"
+	"lisp-go/src/types"
 )
 
 type NodeTag uint

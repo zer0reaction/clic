@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"lisp-go/codegen"
-	"lisp-go/parser"
-	"lisp-go/report"
+	"lisp-go/src/codegen"
+	"lisp-go/src/parser"
+	"lisp-go/src/report"
 	"os"
 	"os/exec"
 	"strings"

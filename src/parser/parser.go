@@ -3,9 +3,9 @@
 package parser
 
 import (
-	"lisp-go/report"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
+	"lisp-go/src/report"
+	sym "lisp-go/src/symbol"
+	"lisp-go/src/types"
 	"strconv"
 )
 

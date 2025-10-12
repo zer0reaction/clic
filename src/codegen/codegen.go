@@ -4,9 +4,9 @@ package codegen
 
 import (
 	"fmt"
-	"lisp-go/parser"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
+	"lisp-go/src/parser"
+	sym "lisp-go/src/symbol"
+	"lisp-go/src/types"
 )
 
 // Scratch registers:

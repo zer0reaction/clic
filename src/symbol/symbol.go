@@ -3,7 +3,7 @@
 package symbol
 
 import (
-	"lisp-go/types"
+	"lisp-go/src/types"
 )
 
 type SymbolId uint

@@ -7,9 +7,9 @@ package parser
 
 import (
 	"fmt"
-	"lisp-go/report"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
+	"lisp-go/src/report"
+	sym "lisp-go/src/symbol"
+	"lisp-go/src/types"
 )
 
 func (p *Parser) TypeCheck(roots []*Node) {
