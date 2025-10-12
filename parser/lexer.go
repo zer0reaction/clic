@@ -65,7 +65,7 @@ var tokenPatterns = []struct {
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
 	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
-	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b)`), true},
+	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b|\bbool\b)`), true},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
 	{tokenFalse, regexp.MustCompile(`^\bfalse\b`), false},
 

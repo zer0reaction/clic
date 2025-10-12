@@ -295,6 +295,9 @@ func (p *Parser) parseType() types.Type {
 	case "u64":
 		return types.U64
 
+	case "bool":
+		return types.Bool
+
 	default:
 		panic("not implemented")
 	}
