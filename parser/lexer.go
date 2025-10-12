@@ -71,7 +71,7 @@ var tokenPatterns = []struct {
 
 	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
 
-	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+)`), true},
+	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+|\*|/|%)`), true},
 
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
 	{tokenTag(')'), regexp.MustCompile(`^\)`), false},

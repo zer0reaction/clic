@@ -241,6 +241,18 @@ func (p *Parser) parseBinOp(n *Node) {
 		n.BinOp.Tag = BinOpArith
 		n.BinOp.ArithTag = BinOpSub
 
+	case "*":
+		n.BinOp.Tag = BinOpArith
+		n.BinOp.ArithTag = BinOpMult
+
+	case "/":
+		n.BinOp.Tag = BinOpArith
+		n.BinOp.ArithTag = BinOpDiv
+
+	case "%":
+		n.BinOp.Tag = BinOpArith
+		n.BinOp.ArithTag = BinOpMod
+
 	case "==":
 		n.BinOp.Tag = BinOpComp
 		n.BinOp.CompTag = BinOpEq

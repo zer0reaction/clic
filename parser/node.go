@@ -38,6 +38,9 @@ const (
 	binOpArithError BinOpArithTag = iota
 	BinOpSum
 	BinOpSub
+	BinOpMult
+	BinOpDiv
+	BinOpMod
 )
 
 type BinOpCompTag uint

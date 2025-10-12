@@ -167,6 +167,43 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	subq	%rdi, %rax\n"
 			code += "	pushq	%rax\n"
 
+		case parser.BinOpMult:
+			code += rval
+			code += lval
+			code += "	/* BinOpMult */\n"
+			code += "	popq	%rax\n" // lval
+			code += "	popq	%rdi\n" // rval
+			code += "	imulq	%rdi, %rax\n"
+			// TODO: the result is actually stored in
+			// [rdx:rax], is this ok to do?
+			code += "	pushq	%rax\n"
+
+		case parser.BinOpDiv:
+			code += rval
+			code += lval
+			code += "	/* BinOpDiv */\n"
+			code += "	popq	%rax\n" // lval
+			code += "	popq	%rdi\n" // rval
+
+			// R[%rax] <- R[%rdx]:R[%rax] / S
+
+			code += "	cqto\n" // sign extend rax to [rdx:rax]
+			code += "	idivq	%rdi\n"
+			code += "	pushq	%rax\n"
+
+		case parser.BinOpMod:
+			code += rval
+			code += lval
+			code += "	/* BinOpMod */\n"
+			code += "	popq	%rax\n" // lval
+			code += "	popq	%rdi\n" // rval
+
+			// R[%rdx] <- R[%rdx]:R[%rax] mod S
+
+			code += "	cqto\n" // sign extend rax to [rdx:rax]
+			code += "	idivq	%rdi\n"
+			code += "	pushq	%rdx\n"
+
 		default:
 			panic("invalid arith tag")
 		}
