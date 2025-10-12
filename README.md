@@ -60,3 +60,10 @@ type `s64`.
 (let foo: u64)
 (:= foo 1337)
 ```
+
+Casting is done like this:
+
+```lisp
+(let foo: u64)
+(:= foo (u64 1337))
+```
