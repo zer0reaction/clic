@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"lisp-go/parser"
 	sym "lisp-go/symbol"
+	"lisp-go/types"
 )
 
 // Scratch registers:
@@ -124,8 +125,30 @@ func codegenNode(n *parser.Node) string {
 	case parser.NodeWhile:
 		code += codegenWhile(n)
 
+	case parser.NodeCast:
+		// Right now there are only integer types, so we can
+		// simply push the node's value on stack. This code
+		// only checks for new and unsupported types.
+
+		from := n.Cast.What.GetType()
+
+		switch from {
+		// Do nothing
+		case types.S64:
+		case types.U64:
+		case types.Bool:
+
+		case types.None:
+			panic("trying to cast from type None")
+
+		default:
+			panic("not implemented")
+		}
+
+		code += codegenNode(n.Cast.What)
+
 	default:
-		panic("node type not implemented")
+		panic("not implemented")
 	}
 
 	return code

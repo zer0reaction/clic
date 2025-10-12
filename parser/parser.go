@@ -156,6 +156,12 @@ func (p *Parser) parseList() *Node {
 		n.While.Exp = p.parseItem()
 		n.While.Body = p.parseList()
 
+	case tokenType:
+		n.Tag = NodeCast
+
+		n.Cast.To = p.parseType()
+		n.Cast.What = p.parseItem()
+
 	default:
 		p.reportHere(&n,
 			report.ReportFatal,

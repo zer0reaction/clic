@@ -21,6 +21,7 @@ const (
 	NodeFunCall
 	NodeIf
 	NodeWhile
+	NodeCast
 )
 
 type BinOpTag uint
@@ -96,6 +97,11 @@ type Node struct {
 		Exp  *Node
 		Body *Node
 	}
+
+	Cast struct {
+		To   types.Type
+		What *Node
+	}
 }
 
 func (n *Node) GetType() types.Type {
@@ -140,6 +146,9 @@ func (n *Node) GetType() types.Type {
 
 	case NodeIf:
 		return types.None
+
+	case NodeCast:
+		return n.Cast.To
 
 	default:
 		panic("not implemented")

@@ -104,7 +104,29 @@ func (p *Parser) checkNode(n *Node) {
 			p.checkNode(node)
 		}
 
-	// do nothing
+	case NodeCast:
+		// Right now there are only integer types, so we can
+		// convert between all of them. This code only checks
+		// for new and unsupported types.
+
+		from := n.Cast.What.GetType()
+
+		switch from {
+		// Do nothing
+		case types.S64:
+		case types.U64:
+		case types.Bool:
+
+		case types.None:
+			p.reportHere(n.Cast.What,
+				report.ReportNonfatal,
+				"can not cast from type None")
+
+		default:
+			panic("not implemented")
+		}
+
+	// Do nothing
 	case NodeInteger:
 	case NodeBoolean:
 	case NodeVariableDecl:
