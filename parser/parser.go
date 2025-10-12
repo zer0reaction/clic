@@ -145,8 +145,7 @@ func (p *Parser) parseList() *Node {
 		n.If.Exp = p.parseItem()
 		n.If.IfBody = p.parseList()
 
-		if p.peek(0).tag == tokenElse {
-			p.discard()
+		if p.peek(0).tag != tokenTag(')') {
 			n.If.ElseBody = p.parseList()
 		}
 

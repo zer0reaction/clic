@@ -31,7 +31,6 @@ const (
 	tokenLet = (128 + iota)
 	tokenExfun
 	tokenIf
-	tokenElse
 	tokenWhile
 	tokenBinOp
 	tokenType
@@ -63,7 +62,6 @@ var tokenPatterns = []struct {
 	{tokenLet, regexp.MustCompile(`^\blet\b`), false},
 	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
 	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
-	{tokenElse, regexp.MustCompile(`^\belse\b`), false},
 	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
 	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b|\bbool\b)`), true},
 	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
@@ -97,9 +95,6 @@ func (tag tokenTag) toString() string {
 
 	case tokenWhile:
 		return "'while'"
-
-	case tokenElse:
-		return "'else'"
 
 	case tokenBinOp:
 		return "binary operator"
