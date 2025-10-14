@@ -1,10 +1,10 @@
-// This file contains node type defenition and method implementation.
+// This file contains AST node defenition.
 
-package parser
+package ast
 
 import (
-	sym "lisp-go/src/symbol"
-	"lisp-go/src/types"
+	sym "lisp-go/symbol"
+	"lisp-go/types"
 )
 
 type NodeTag uint

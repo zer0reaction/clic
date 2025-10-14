@@ -4,9 +4,9 @@ package codegen
 
 import (
 	"fmt"
-	"lisp-go/src/parser"
-	sym "lisp-go/src/symbol"
-	"lisp-go/src/types"
+	"lisp-go/ast"
+	sym "lisp-go/symbol"
+	"lisp-go/types"
 )
 
 // Scratch registers:
@@ -26,7 +26,7 @@ var externDecls = ""
 
 var localCount = 0
 
-func Codegen(roots []*parser.Node) string {
+func Codegen(roots []*ast.Node) string {
 	code := ""
 
 	tmp := ""
@@ -61,41 +61,41 @@ func Codegen(roots []*parser.Node) string {
 // STACK BASE
 // 4 (rval)
 // 3 (lval)
-func codegenNode(n *parser.Node) string {
+func codegenNode(n *ast.Node) string {
 	code := ""
 
 	switch n.Tag {
-	case parser.NodeBlock:
+	case ast.NodeBlock:
 		for _, node := range n.Block.Stmts {
 			code += codegenNode(node)
 		}
 
-	case parser.NodeVariableDecl:
+	case ast.NodeVariableDecl:
 		v := sym.GetVariable(n.Id)
 		v.Offset = stackOffset + varBytesize
 		sym.SetVariable(n.Id, v)
 
 		stackOffset += varBytesize
 
-	case parser.NodeVariable:
+	case ast.NodeVariable:
 		v := sym.GetVariable(n.Id)
 
 		code += "	/* Variable */\n"
 		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", v.Offset)
 		code += "	pushq	%rax\n"
 
-	case parser.NodeInteger:
+	case ast.NodeInteger:
 		code += "	/* Integer */\n"
 		code += fmt.Sprintf("	pushq	$%d\n", n.Integer.Value)
 
-	case parser.NodeBinOp:
+	case ast.NodeBinOp:
 		code += codegenBinOp(n)
 
-	case parser.NodeFunEx:
+	case ast.NodeFunEx:
 		f := sym.GetFunction(n.Id)
 		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
 
-	case parser.NodeFunCall:
+	case ast.NodeFunCall:
 		code += "	/* FunCall */\n"
 
 		if len(n.FunCall.Args) >= len(argRegisters) {
@@ -111,7 +111,7 @@ func codegenNode(n *parser.Node) string {
 		code += fmt.Sprintf("	call	%s\n", f.Name)
 		code += "	pushq	%rax\n"
 
-	case parser.NodeBoolean:
+	case ast.NodeBoolean:
 		code += "	/* Boolean */\n"
 		if n.Boolean.Value {
 			code += "	pushq	$1\n"
@@ -119,13 +119,13 @@ func codegenNode(n *parser.Node) string {
 			code += "	pushq	$0\n"
 		}
 
-	case parser.NodeIf:
+	case ast.NodeIf:
 		code += codegenIf(n)
 
-	case parser.NodeWhile:
+	case ast.NodeWhile:
 		code += codegenWhile(n)
 
-	case parser.NodeCast:
+	case ast.NodeCast:
 		// Right now there are only integer types, so we can
 		// simply push the node's value on stack. This code
 		// only checks for new and unsupported types.
@@ -154,14 +154,14 @@ func codegenNode(n *parser.Node) string {
 	return code
 }
 
-func codegenBinOp(n *parser.Node) string {
+func codegenBinOp(n *ast.Node) string {
 	code := ""
 
 	lval := codegenNode(n.BinOp.Lval)
 	rval := codegenNode(n.BinOp.Rval)
 
 	switch n.BinOp.Tag {
-	case parser.BinOpAssign:
+	case ast.BinOpAssign:
 		v := sym.GetVariable(n.BinOp.Lval.Id)
 		offset := v.Offset
 
@@ -170,9 +170,9 @@ func codegenBinOp(n *parser.Node) string {
 		code += "	popq	%rax\n"
 		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
 
-	case parser.BinOpArith:
+	case ast.BinOpArith:
 		switch n.BinOp.ArithTag {
-		case parser.BinOpSum:
+		case ast.BinOpSum:
 			code += rval
 			code += lval
 			code += "	/* BinOpSum */\n"
@@ -181,7 +181,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	addq	%rdi, %rax\n"
 			code += "	pushq	%rax\n"
 
-		case parser.BinOpSub:
+		case ast.BinOpSub:
 			code += rval
 			code += lval
 			code += "	/* BinOpSub */\n"
@@ -190,7 +190,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	subq	%rdi, %rax\n"
 			code += "	pushq	%rax\n"
 
-		case parser.BinOpMult:
+		case ast.BinOpMult:
 			code += rval
 			code += lval
 			code += "	/* BinOpMult */\n"
@@ -201,7 +201,7 @@ func codegenBinOp(n *parser.Node) string {
 			// [rdx:rax], is this ok to do?
 			code += "	pushq	%rax\n"
 
-		case parser.BinOpDiv:
+		case ast.BinOpDiv:
 			code += rval
 			code += lval
 			code += "	/* BinOpDiv */\n"
@@ -214,7 +214,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	idivq	%rdi\n"
 			code += "	pushq	%rax\n"
 
-		case parser.BinOpMod:
+		case ast.BinOpMod:
 			code += rval
 			code += lval
 			code += "	/* BinOpMod */\n"
@@ -231,9 +231,9 @@ func codegenBinOp(n *parser.Node) string {
 			panic("invalid arith tag")
 		}
 
-	case parser.BinOpComp:
+	case ast.BinOpComp:
 		switch n.BinOp.CompTag {
-		case parser.BinOpEq:
+		case ast.BinOpEq:
 			code += rval
 			code += lval
 			code += "	/* BinOpEq */\n"
@@ -244,7 +244,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	sete	%sil\n"
 			code += "	pushq	%rsi\n"
 
-		case parser.BinOpNeq:
+		case ast.BinOpNeq:
 			code += rval
 			code += lval
 			code += "	/* BinOpNeq */\n"
@@ -255,7 +255,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	setne	%sil\n"
 			code += "	pushq	%rsi\n"
 
-		case parser.BinOpLessEq:
+		case ast.BinOpLessEq:
 			code += rval
 			code += lval
 			code += "	/* BinOpLessEq */\n"
@@ -266,7 +266,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	setle	%sil\n"
 			code += "	pushq	%rsi\n"
 
-		case parser.BinOpLess:
+		case ast.BinOpLess:
 			code += rval
 			code += lval
 			code += "	/* BinOpLess */\n"
@@ -277,7 +277,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	setl	%sil\n"
 			code += "	pushq	%rsi\n"
 
-		case parser.BinOpGreatEq:
+		case ast.BinOpGreatEq:
 			code += rval
 			code += lval
 			code += "	/* BinOpGreatEq */\n"
@@ -288,7 +288,7 @@ func codegenBinOp(n *parser.Node) string {
 			code += "	setge	%sil\n"
 			code += "	pushq	%rsi\n"
 
-		case parser.BinOpGreat:
+		case ast.BinOpGreat:
 			code += rval
 			code += lval
 			code += "	/* BinOpGreat */\n"
@@ -310,7 +310,7 @@ func codegenBinOp(n *parser.Node) string {
 	return code
 }
 
-func codegenIf(n *parser.Node) string {
+func codegenIf(n *ast.Node) string {
 	code := ""
 
 	code += codegenNode(n.If.Exp)
@@ -342,7 +342,7 @@ func codegenIf(n *parser.Node) string {
 	return code
 }
 
-func codegenWhile(n *parser.Node) string {
+func codegenWhile(n *ast.Node) string {
 	code := ""
 
 	start := fmt.Sprintf(".L%d", localCount)

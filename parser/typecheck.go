@@ -7,24 +7,25 @@ package parser
 
 import (
 	"fmt"
-	"lisp-go/src/report"
-	sym "lisp-go/src/symbol"
-	"lisp-go/src/types"
+	"lisp-go/ast"
+	"lisp-go/report"
+	sym "lisp-go/symbol"
+	"lisp-go/types"
 )
 
-func (p *Parser) TypeCheck(roots []*Node) {
+func (p *Parser) TypeCheck(roots []*ast.Node) {
 	for _, node := range roots {
 		p.checkNode(node)
 	}
 }
 
-func (p *Parser) checkNode(n *Node) {
+func (p *Parser) checkNode(n *ast.Node) {
 	if n == nil {
 		return
 	}
 
 	switch n.Tag {
-	case NodeBinOp:
+	case ast.NodeBinOp:
 		p.checkNode(n.BinOp.Lval)
 		p.checkNode(n.BinOp.Rval)
 
@@ -36,15 +37,15 @@ func (p *Parser) checkNode(n *Node) {
 				"operand type mismatch")
 		}
 
-		isAssign := (n.BinOp.Tag == BinOpAssign)
-		isStorage := (n.BinOp.Lval.Tag == NodeVariable)
+		isAssign := (n.BinOp.Tag == ast.BinOpAssign)
+		isStorage := (n.BinOp.Lval.Tag == ast.NodeVariable)
 		if isAssign && !isStorage {
 			p.reportHere(n,
 				report.ReportNonfatal,
 				"lvalue is not a storage location")
 		}
 
-	case NodeFunCall:
+	case ast.NodeFunCall:
 		for _, node := range n.FunCall.Args {
 			p.checkNode(node)
 		}
@@ -52,7 +53,7 @@ func (p *Parser) checkNode(n *Node) {
 		fun := sym.GetFunction(n.Id)
 
 		if len(n.FunCall.Args) != len(fun.Params) {
-			var where *Node
+			var where *ast.Node
 
 			if len(n.FunCall.Args) > 0 {
 				where = n.FunCall.Args[0]
@@ -74,7 +75,7 @@ func (p *Parser) checkNode(n *Node) {
 			}
 		}
 
-	case NodeIf:
+	case ast.NodeIf:
 		p.checkNode(n.If.Exp)
 
 		expType := n.If.Exp.GetType()
@@ -87,7 +88,7 @@ func (p *Parser) checkNode(n *Node) {
 		p.checkNode(n.If.IfBody)
 		p.checkNode(n.If.ElseBody)
 
-	case NodeWhile:
+	case ast.NodeWhile:
 		p.checkNode(n.While.Exp)
 
 		expType := n.While.Exp.GetType()
@@ -99,12 +100,12 @@ func (p *Parser) checkNode(n *Node) {
 
 		p.checkNode(n.While.Body)
 
-	case NodeBlock:
+	case ast.NodeBlock:
 		for _, node := range n.Block.Stmts {
 			p.checkNode(node)
 		}
 
-	case NodeCast:
+	case ast.NodeCast:
 		// Right now there are only integer types, so we can
 		// convert between all of them. This code only checks
 		// for new and unsupported types.
@@ -127,11 +128,11 @@ func (p *Parser) checkNode(n *Node) {
 		}
 
 	// Do nothing
-	case NodeInteger:
-	case NodeBoolean:
-	case NodeVariableDecl:
-	case NodeVariable:
-	case NodeFunEx:
+	case ast.NodeInteger:
+	case ast.NodeBoolean:
+	case ast.NodeVariableDecl:
+	case ast.NodeVariable:
+	case ast.NodeFunEx:
 
 	default:
 		panic("node not implemented")

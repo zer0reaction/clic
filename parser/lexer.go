@@ -5,7 +5,7 @@ package parser
 
 import (
 	"fmt"
-	"lisp-go/src/report"
+	"lisp-go/report"
 	"regexp"
 )
 

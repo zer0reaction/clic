@@ -3,9 +3,10 @@
 package parser
 
 import (
-	"lisp-go/src/report"
-	sym "lisp-go/src/symbol"
-	"lisp-go/src/types"
+	"lisp-go/ast"
+	"lisp-go/report"
+	sym "lisp-go/symbol"
+	"lisp-go/types"
 	"strconv"
 )
 
@@ -28,8 +29,8 @@ func New(fileName string, data string) *Parser {
 	}
 }
 
-func (p *Parser) CreateASTs() []*Node {
-	var roots []*Node
+func (p *Parser) CreateASTs() []*ast.Node {
+	var roots []*ast.Node
 
 	for {
 		lookahead := p.peek(0)
@@ -44,7 +45,7 @@ func (p *Parser) CreateASTs() []*Node {
 	return roots
 }
 
-func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
+func (p *Parser) reportHere(n *ast.Node, tag report.ReportTag, msg string) {
 	report.Report(report.Form{
 		Tag:    tag,
 		File:   p.fileName,
@@ -54,11 +55,11 @@ func (p *Parser) reportHere(n *Node, tag report.ReportTag, msg string) {
 	})
 }
 
-func (p *Parser) parseList() *Node {
+func (p *Parser) parseList() *ast.Node {
 	p.match(tokenTag('('))
 
 	lookahead := p.peek(0)
-	n := Node{
+	n := ast.Node{
 		Line:   lookahead.line,
 		Column: lookahead.column,
 	}
@@ -68,7 +69,7 @@ func (p *Parser) parseList() *Node {
 		p.parseBinOp(&n)
 
 	case tokenTag('('):
-		n.Tag = NodeBlock
+		n.Tag = ast.NodeBlock
 
 		sym.PushBlock()
 
@@ -80,7 +81,7 @@ func (p *Parser) parseList() *Node {
 	case tokenLet:
 		p.discard()
 
-		n.Tag = NodeVariableDecl
+		n.Tag = ast.NodeVariableDecl
 
 		v := sym.Variable{}
 		v.Name, v.Type = p.parseNameWithType()
@@ -98,7 +99,7 @@ func (p *Parser) parseList() *Node {
 	case tokenExfun:
 		p.discard()
 
-		n.Tag = NodeFunEx
+		n.Tag = ast.NodeFunEx
 		fun := sym.Function{}
 
 		fun.Name = p.match(tokenIdent).data
@@ -126,7 +127,7 @@ func (p *Parser) parseList() *Node {
 	case tokenIdent:
 		t := p.consume()
 
-		n.Tag = NodeFunCall
+		n.Tag = ast.NodeFunCall
 
 		id := sym.LookupAnywhere(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
@@ -139,7 +140,7 @@ func (p *Parser) parseList() *Node {
 		n.FunCall.Args = p.collectItems()
 
 	case tokenIf:
-		n.Tag = NodeIf
+		n.Tag = ast.NodeIf
 
 		p.discard()
 		n.If.Exp = p.parseItem()
@@ -150,14 +151,14 @@ func (p *Parser) parseList() *Node {
 		}
 
 	case tokenWhile:
-		n.Tag = NodeWhile
+		n.Tag = ast.NodeWhile
 
 		p.discard()
 		n.While.Exp = p.parseItem()
 		n.While.Body = p.parseList()
 
 	case tokenType:
-		n.Tag = NodeCast
+		n.Tag = ast.NodeCast
 
 		n.Cast.To = p.parseType()
 		n.Cast.What = p.parseItem()
@@ -173,9 +174,9 @@ func (p *Parser) parseList() *Node {
 	return &n
 }
 
-func (p *Parser) parseItem() *Node {
+func (p *Parser) parseItem() *ast.Node {
 	lookahead := p.peek(0)
-	n := Node{
+	n := ast.Node{
 		Line:   lookahead.line,
 		Column: lookahead.column,
 	}
@@ -186,7 +187,7 @@ func (p *Parser) parseItem() *Node {
 
 		p.discard()
 
-		n.Tag = NodeInteger
+		n.Tag = ast.NodeInteger
 		// TODO: this is not clear, add a cast?
 		n.Integer.Type = types.S64
 
@@ -199,7 +200,7 @@ func (p *Parser) parseItem() *Node {
 	case tokenIdent:
 		t := p.consume()
 
-		n.Tag = NodeVariable
+		n.Tag = ast.NodeVariable
 
 		id := sym.LookupAnywhere(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
@@ -211,12 +212,12 @@ func (p *Parser) parseItem() *Node {
 
 	case tokenTrue:
 		p.discard()
-		n.Tag = NodeBoolean
+		n.Tag = ast.NodeBoolean
 		n.Boolean.Value = true
 
 	case tokenFalse:
 		p.discard()
-		n.Tag = NodeBoolean
+		n.Tag = ast.NodeBoolean
 		n.Boolean.Value = false
 
 	case tokenTag('('):
@@ -231,56 +232,56 @@ func (p *Parser) parseItem() *Node {
 	return &n
 }
 
-func (p *Parser) parseBinOp(n *Node) {
-	n.Tag = NodeBinOp
+func (p *Parser) parseBinOp(n *ast.Node) {
+	n.Tag = ast.NodeBinOp
 
 	switch p.consume().data {
 	case ":=":
-		n.BinOp.Tag = BinOpAssign
+		n.BinOp.Tag = ast.BinOpAssign
 
 	case "+":
-		n.BinOp.Tag = BinOpArith
-		n.BinOp.ArithTag = BinOpSum
+		n.BinOp.Tag = ast.BinOpArith
+		n.BinOp.ArithTag = ast.BinOpSum
 
 	case "-":
-		n.BinOp.Tag = BinOpArith
-		n.BinOp.ArithTag = BinOpSub
+		n.BinOp.Tag = ast.BinOpArith
+		n.BinOp.ArithTag = ast.BinOpSub
 
 	case "*":
-		n.BinOp.Tag = BinOpArith
-		n.BinOp.ArithTag = BinOpMult
+		n.BinOp.Tag = ast.BinOpArith
+		n.BinOp.ArithTag = ast.BinOpMult
 
 	case "/":
-		n.BinOp.Tag = BinOpArith
-		n.BinOp.ArithTag = BinOpDiv
+		n.BinOp.Tag = ast.BinOpArith
+		n.BinOp.ArithTag = ast.BinOpDiv
 
 	case "%":
-		n.BinOp.Tag = BinOpArith
-		n.BinOp.ArithTag = BinOpMod
+		n.BinOp.Tag = ast.BinOpArith
+		n.BinOp.ArithTag = ast.BinOpMod
 
 	case "==":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpEq
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpEq
 
 	case "!=":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpNeq
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpNeq
 
 	case "<=":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpLessEq
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpLessEq
 
 	case "<":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpLess
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpLess
 
 	case ">=":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpGreatEq
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpGreatEq
 
 	case ">":
-		n.BinOp.Tag = BinOpComp
-		n.BinOp.CompTag = BinOpGreat
+		n.BinOp.Tag = ast.BinOpComp
+		n.BinOp.CompTag = ast.BinOpGreat
 
 	default:
 		panic("not implemented")
@@ -315,8 +316,8 @@ func (p *Parser) parseNameWithType() (string, types.Type) {
 	return name, type_
 }
 
-func (p *Parser) collectItems() []*Node {
-	var items []*Node
+func (p *Parser) collectItems() []*ast.Node {
+	var items []*ast.Node
 
 	for {
 		lookahead := p.peek(0)
