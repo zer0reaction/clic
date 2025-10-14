@@ -1,9 +1,6 @@
 // This file contains the type checking functions.
 
-// Type checking probably shouldn't be done in the parser package, but
-// it is convenient to place it here.
-
-package parser
+package checker
 
 import (
 	"fmt"
@@ -13,41 +10,39 @@ import (
 	"lisp-go/types"
 )
 
-func (p *Parser) TypeCheck(roots []*ast.Node) {
+func TypeCheck(roots []*ast.Node, r *report.Reporter) {
 	for _, node := range roots {
-		p.checkNode(node)
+		checkNode(node, r)
 	}
 }
 
-func (p *Parser) checkNode(n *ast.Node) {
+func checkNode(n *ast.Node, r *report.Reporter) {
 	if n == nil {
 		return
 	}
 
 	switch n.Tag {
 	case ast.NodeBinOp:
-		p.checkNode(n.BinOp.Lval)
-		p.checkNode(n.BinOp.Rval)
+		checkNode(n.BinOp.Lval, r)
+		checkNode(n.BinOp.Rval, r)
 
 		lvalType := n.BinOp.Lval.GetType()
 		rvalType := n.BinOp.Rval.GetType()
 		if lvalType != rvalType {
-			p.reportHere(n,
-				report.ReportNonfatal,
+			n.ReportHere(r, report.ReportNonfatal,
 				"operand type mismatch")
 		}
 
 		isAssign := (n.BinOp.Tag == ast.BinOpAssign)
 		isStorage := (n.BinOp.Lval.Tag == ast.NodeVariable)
 		if isAssign && !isStorage {
-			p.reportHere(n,
-				report.ReportNonfatal,
+			n.ReportHere(r, report.ReportNonfatal,
 				"lvalue is not a storage location")
 		}
 
 	case ast.NodeFunCall:
 		for _, node := range n.FunCall.Args {
-			p.checkNode(node)
+			checkNode(node, r)
 		}
 
 		fun := sym.GetFunction(n.Id)
@@ -61,48 +56,43 @@ func (p *Parser) checkNode(n *ast.Node) {
 				where = n
 			}
 
-			p.reportHere(where,
-				report.ReportNonfatal,
-				fmt.Sprintf("expected %d arguments, got %d",
-					len(fun.Params), len(n.FunCall.Args)))
+			where.ReportHere(r, report.ReportNonfatal,
+				fmt.Sprintf("expected %d arguments, got %d", len(fun.Params), len(n.FunCall.Args)))
 		}
 
 		for i, arg := range n.FunCall.Args {
 			if arg.GetType() != fun.Params[i].Type {
-				p.reportHere(arg,
-					report.ReportNonfatal,
+				n.ReportHere(r, report.ReportNonfatal,
 					"mismatched types in function call")
 			}
 		}
 
 	case ast.NodeIf:
-		p.checkNode(n.If.Exp)
+		checkNode(n.If.Exp, r)
 
 		expType := n.If.Exp.GetType()
 		if expType != types.Bool {
-			p.reportHere(n.If.Exp,
-				report.ReportNonfatal,
+			n.If.Exp.ReportHere(r, report.ReportNonfatal,
 				"expected boolean type")
 		}
 
-		p.checkNode(n.If.IfBody)
-		p.checkNode(n.If.ElseBody)
+		checkNode(n.If.IfBody, r)
+		checkNode(n.If.ElseBody, r)
 
 	case ast.NodeWhile:
-		p.checkNode(n.While.Exp)
+		checkNode(n.While.Exp, r)
 
 		expType := n.While.Exp.GetType()
 		if expType != types.Bool {
-			p.reportHere(n.While.Exp,
-				report.ReportNonfatal,
+			n.While.Exp.ReportHere(r, report.ReportNonfatal,
 				"expected boolean type")
 		}
 
-		p.checkNode(n.While.Body)
+		checkNode(n.While.Body, r)
 
 	case ast.NodeBlock:
 		for _, node := range n.Block.Stmts {
-			p.checkNode(node)
+			checkNode(node, r)
 		}
 
 	case ast.NodeCast:
@@ -119,8 +109,7 @@ func (p *Parser) checkNode(n *ast.Node) {
 		case types.Bool:
 
 		case types.None:
-			p.reportHere(n.Cast.What,
-				report.ReportNonfatal,
+			n.Cast.What.ReportHere(r, report.ReportNonfatal,
 				"can not cast from type None")
 
 		default:

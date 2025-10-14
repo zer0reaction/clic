@@ -51,7 +51,7 @@ type token struct {
 	data   string
 }
 
-// TODO: probably need to refactor to tokenKeyword
+// TODO: Probably need to refactor to tokenKeyword
 var tokenPatterns = []struct {
 	tag       tokenTag
 	pattern   *regexp.Regexp
@@ -148,6 +148,7 @@ func (p *Parser) pushToken(t token) {
 }
 
 func (p *Parser) cacheToken() {
+	// TODO: This fails on empty file, fix!
 	if p.l.data == "" {
 		panic("attempted to cache empty input")
 	}
@@ -214,9 +215,8 @@ blankLoop:
 	}
 
 	if !matched {
-		report.Report(report.Form{
+		p.r.Report(report.Form{
 			Tag:    report.ReportFatal,
-			File:   p.fileName,
 			Line:   p.l.line,
 			Column: p.l.column,
 			Msg:    "unknown syntax",
@@ -237,9 +237,8 @@ func (p *Parser) match(tag tokenTag) token {
 	if token.tag != tag {
 		msg := fmt.Sprintf("expected %s, got %s",
 			tag.toString(), token.tag.toString())
-		report.Report(report.Form{
+		p.r.Report(report.Form{
 			Tag:    report.ReportFatal,
-			File:   p.fileName,
 			Line:   token.line,
 			Column: token.column,
 			Msg:    msg,

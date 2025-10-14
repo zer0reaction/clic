@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"lisp-go/checker"
 	"lisp-go/codegen"
 	"lisp-go/parser"
 	"lisp-go/report"
@@ -28,13 +29,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := parser.New(input, string(data))
+	r := &report.Reporter{FileName: input}
+
+	p := parser.New(string(data), r)
 
 	roots := p.CreateASTs()
-	report.ExitOnErrors(1)
+	r.ExitOnErrors(1)
 
-	p.TypeCheck(roots)
-	report.ExitOnErrors(1)
+	checker.TypeCheck(roots, r)
+	r.ExitOnErrors(1)
 
 	asm := codegen.Codegen(roots)
 	asmPath := "/tmp/cli.s"

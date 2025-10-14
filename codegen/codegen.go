@@ -197,7 +197,7 @@ func codegenBinOp(n *ast.Node) string {
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	imulq	%rdi, %rax\n"
-			// TODO: the result is actually stored in
+			// TODO: The result is actually stored in
 			// [rdx:rax], is this ok to do?
 			code += "	pushq	%rax\n"
 

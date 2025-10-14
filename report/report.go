@@ -7,9 +7,13 @@ import (
 	"os"
 )
 
+type Reporter struct {
+	FileName   string
+	errorCount uint
+}
+
 type Form struct {
 	Tag    ReportTag
-	File   string
 	Line   uint
 	Column uint
 	Msg    string
@@ -23,10 +27,9 @@ const (
 	ReportNonfatal
 )
 
-var errorsOccured = false
-
-func Report(f Form) {
-	errorsOccured = true
+func (r *Reporter) Report(f Form) {
+	// TODO: Dont increment this on warnings (when they are added)
+	r.errorCount += 1
 
 	if f.Line == 0 || f.Column == 0 {
 		panic("line or column not set in report")
@@ -35,19 +38,19 @@ func Report(f Form) {
 	switch f.Tag {
 	case ReportFatal:
 		fmt.Printf("%s:%d:%d: fatal: %s\n",
-			f.File, f.Line, f.Column, f.Msg)
+			r.FileName, f.Line, f.Column, f.Msg)
 		os.Exit(1)
 
 	case ReportNonfatal:
 		fmt.Printf("%s:%d:%d: error: %s\n",
-			f.File, f.Line, f.Column, f.Msg)
+			r.FileName, f.Line, f.Column, f.Msg)
 	default:
 		panic("unexpected report tag")
 	}
 }
 
-func ExitOnErrors(code int) {
-	if errorsOccured {
+func (r *Reporter) ExitOnErrors(code int) {
+	if r.errorCount > 0 {
 		os.Exit(code)
 	}
 }

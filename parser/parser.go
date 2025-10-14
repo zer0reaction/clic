@@ -11,14 +11,12 @@ import (
 )
 
 type Parser struct {
-	fileName string
-
 	l lexer
+	r *report.Reporter
 }
 
-func New(fileName string, data string) *Parser {
+func New(data string, r *report.Reporter) *Parser {
 	return &Parser{
-		fileName: fileName,
 		l: lexer{
 			data:     data,
 			line:     1,
@@ -26,6 +24,7 @@ func New(fileName string, data string) *Parser {
 			writeInd: 0,
 			readInd:  0,
 		},
+		r: r,
 	}
 }
 
@@ -43,16 +42,6 @@ func (p *Parser) CreateASTs() []*ast.Node {
 	}
 
 	return roots
-}
-
-func (p *Parser) reportHere(n *ast.Node, tag report.ReportTag, msg string) {
-	report.Report(report.Form{
-		Tag:    tag,
-		File:   p.fileName,
-		Line:   n.Line,
-		Column: n.Column,
-		Msg:    msg,
-	})
 }
 
 func (p *Parser) parseList() *ast.Node {
@@ -87,8 +76,7 @@ func (p *Parser) parseList() *ast.Node {
 		v.Name, v.Type = p.parseNameWithType()
 
 		if sym.ExistsInBlock(v.Name, sym.SymbolVariable) {
-			p.reportHere(&n,
-				report.ReportNonfatal,
+			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable is already declared")
 		} else {
 			id := sym.AddSymbol(v.Name, sym.SymbolVariable)
@@ -115,8 +103,7 @@ func (p *Parser) parseList() *ast.Node {
 		p.match(tokenTag(')'))
 
 		if sym.ExistsAnywhere(fun.Name, sym.SymbolFunction) {
-			p.reportHere(&n,
-				report.ReportNonfatal,
+			n.ReportHere(p.r, report.ReportNonfatal,
 				"function is already declared")
 		} else {
 			id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
@@ -131,7 +118,7 @@ func (p *Parser) parseList() *ast.Node {
 
 		id := sym.LookupAnywhere(t.data, sym.SymbolFunction)
 		if id == sym.SymbolIdNone {
-			p.reportHere(&n,
+			n.ReportHere(p.r,
 				report.ReportNonfatal,
 				"function is not declared")
 		}
@@ -164,8 +151,7 @@ func (p *Parser) parseList() *ast.Node {
 		n.Cast.What = p.parseItem()
 
 	default:
-		p.reportHere(&n,
-			report.ReportFatal,
+		n.ReportHere(p.r, report.ReportFatal,
 			"incorrect list head item")
 	}
 
@@ -188,7 +174,7 @@ func (p *Parser) parseItem() *ast.Node {
 		p.discard()
 
 		n.Tag = ast.NodeInteger
-		// TODO: this is not clear, add a cast?
+		// TODO: This is not clear, add a cast?
 		n.Integer.Type = types.S64
 
 		value, err := strconv.ParseInt(t.data, 0, 64)
@@ -204,8 +190,7 @@ func (p *Parser) parseItem() *ast.Node {
 
 		id := sym.LookupAnywhere(t.data, sym.SymbolVariable)
 		if id == sym.SymbolIdNone {
-			p.reportHere(&n,
-				report.ReportNonfatal,
+			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable does not exist")
 		}
 		n.Id = id
@@ -224,8 +209,7 @@ func (p *Parser) parseItem() *ast.Node {
 		return p.parseList()
 
 	default:
-		p.reportHere(&n,
-			report.ReportFatal,
+		n.ReportHere(p.r, report.ReportFatal,
 			"incorrect list item")
 	}
 

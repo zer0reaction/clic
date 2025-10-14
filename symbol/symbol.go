@@ -117,7 +117,7 @@ func LookupAnywhere(name string, tag SymbolTag) SymbolId {
 		if !ok {
 			panic("symbol not found")
 		}
-		// TODO: is this the right thing to do?
+		// TODO: Is this the right thing to do?
 		if s.tag != tag {
 			return SymbolIdNone
 		}
@@ -136,7 +136,7 @@ func LookupInBlock(name string, tag SymbolTag) SymbolId {
 	if !ok {
 		panic("symbol not found")
 	}
-	// TODO: is this the right thing to do?
+	// TODO: Is this the right thing to do?
 	if s.tag != tag {
 		return SymbolIdNone
 	}

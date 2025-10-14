@@ -3,6 +3,7 @@
 package ast
 
 import (
+	"lisp-go/report"
 	sym "lisp-go/symbol"
 	"lisp-go/types"
 )
@@ -141,7 +142,7 @@ func (n *Node) GetType() types.Type {
 		return types.None
 
 	case NodeFunCall:
-		// TODO: add checking types
+		// TODO: Add checking types
 		return types.None
 
 	case NodeIf:
@@ -153,4 +154,13 @@ func (n *Node) GetType() types.Type {
 	default:
 		panic("not implemented")
 	}
+}
+
+func (n *Node) ReportHere(r *report.Reporter, tag report.ReportTag, msg string) {
+	r.Report(report.Form{
+		Tag:    tag,
+		Line:   n.Line,
+		Column: n.Column,
+		Msg:    msg,
+	})
 }
