@@ -25,17 +25,12 @@ type tokenTag uint
 const (
 	tokenError tokenTag = 0
 
-	// imagine ASCII chars here
+	// Imagine ASCII chars here
 
 	// Keywords
-	tokenLet = (128 + iota)
-	tokenExfun
-	tokenIf
-	tokenWhile
+	tokenKeyword = (128 + iota)
 	tokenBinOp
 	tokenType
-	tokenTrue
-	tokenFalse
 
 	// Other terminals
 	tokenInteger
@@ -59,16 +54,9 @@ var tokenPatterns = []struct {
 }{
 	// Order matters!
 
-	{tokenLet, regexp.MustCompile(`^\blet\b`), false},
-	{tokenExfun, regexp.MustCompile(`^\bexfun\b`), false},
-	{tokenIf, regexp.MustCompile(`^\bif\b`), false},
-	{tokenWhile, regexp.MustCompile(`^\bwhile\b`), false},
+	{tokenKeyword, regexp.MustCompile(`^(\blet\b|\bexfun\b|\bif\b|\bwhile\b|\btrue\b|\bfalse\b)`), true},
 	{tokenType, regexp.MustCompile(`^(\bs64\b|\bu64\b|\bbool\b)`), true},
-	{tokenTrue, regexp.MustCompile(`^\btrue\b`), false},
-	{tokenFalse, regexp.MustCompile(`^\bfalse\b`), false},
-
 	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
-
 	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+|\*|/|%)`), true},
 
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
@@ -84,29 +72,14 @@ func (tag tokenTag) toString() string {
 	}
 
 	switch tag {
-	case tokenLet:
-		return "'let'"
-
-	case tokenExfun:
-		return "'exfun'"
-
-	case tokenIf:
-		return "'if'"
-
-	case tokenWhile:
-		return "'while'"
+	case tokenKeyword:
+		return "keyword"
 
 	case tokenBinOp:
 		return "binary operator"
 
 	case tokenType:
 		return "type"
-
-	case tokenTrue:
-		return "'true'"
-
-	case tokenFalse:
-		return "'false'"
 
 	case tokenInteger:
 		return "integer literal"

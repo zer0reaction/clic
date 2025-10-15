@@ -67,48 +67,66 @@ func (p *Parser) parseList() *ast.Node {
 
 		sym.PopBlock()
 
-	case tokenLet:
-		p.discard()
+	case tokenKeyword:
+		switch p.consume().data {
+		case "let":
+			n.Tag = ast.NodeVariableDecl
 
-		n.Tag = ast.NodeVariableDecl
+			v := sym.Variable{}
+			v.Name, v.Type = p.parseNameWithType()
 
-		v := sym.Variable{}
-		v.Name, v.Type = p.parseNameWithType()
+			if sym.ExistsInBlock(v.Name, sym.SymbolVariable) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"variable is already declared")
+			} else {
+				id := sym.AddSymbol(v.Name, sym.SymbolVariable)
+				sym.SetVariable(id, v)
+				n.Id = id
+			}
 
-		if sym.ExistsInBlock(v.Name, sym.SymbolVariable) {
-			n.ReportHere(p.r, report.ReportNonfatal,
-				"variable is already declared")
-		} else {
-			id := sym.AddSymbol(v.Name, sym.SymbolVariable)
-			sym.SetVariable(id, v)
-			n.Id = id
-		}
+		case "exfun":
+			n.Tag = ast.NodeFunEx
+			fun := sym.Function{}
 
-	case tokenExfun:
-		p.discard()
+			fun.Name = p.match(tokenIdent).data
 
-		n.Tag = ast.NodeFunEx
-		fun := sym.Function{}
+			p.match(tokenTag('('))
 
-		fun.Name = p.match(tokenIdent).data
+			for p.peek(0).tag != tokenTag(')') {
+				param := sym.TypedIdent{}
+				param.Name, param.Type = p.parseNameWithType()
+				fun.Params = append(fun.Params, param)
+			}
 
-		p.match(tokenTag('('))
+			p.match(tokenTag(')'))
 
-		for p.peek(0).tag != tokenTag(')') {
-			param := sym.TypedIdent{}
-			param.Name, param.Type = p.parseNameWithType()
-			fun.Params = append(fun.Params, param)
-		}
+			if sym.ExistsAnywhere(fun.Name, sym.SymbolFunction) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"function is already declared")
+			} else {
+				id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
+				sym.SetFunction(id, fun)
+				n.Id = id
+			}
 
-		p.match(tokenTag(')'))
+		case "if":
+			n.Tag = ast.NodeIf
 
-		if sym.ExistsAnywhere(fun.Name, sym.SymbolFunction) {
-			n.ReportHere(p.r, report.ReportNonfatal,
-				"function is already declared")
-		} else {
-			id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
-			sym.SetFunction(id, fun)
-			n.Id = id
+			n.If.Exp = p.parseItem()
+			n.If.IfBody = p.parseList()
+
+			if p.peek(0).tag != tokenTag(')') {
+				n.If.ElseBody = p.parseList()
+			}
+
+		case "while":
+			n.Tag = ast.NodeWhile
+
+			n.While.Exp = p.parseItem()
+			n.While.Body = p.parseList()
+
+		default:
+			panic("incorrect keyword data")
 		}
 
 	case tokenIdent:
@@ -125,24 +143,6 @@ func (p *Parser) parseList() *ast.Node {
 		n.Id = id
 
 		n.FunCall.Args = p.collectItems()
-
-	case tokenIf:
-		n.Tag = ast.NodeIf
-
-		p.discard()
-		n.If.Exp = p.parseItem()
-		n.If.IfBody = p.parseList()
-
-		if p.peek(0).tag != tokenTag(')') {
-			n.If.ElseBody = p.parseList()
-		}
-
-	case tokenWhile:
-		n.Tag = ast.NodeWhile
-
-		p.discard()
-		n.While.Exp = p.parseItem()
-		n.While.Body = p.parseList()
 
 	case tokenType:
 		n.Tag = ast.NodeCast
@@ -198,15 +198,19 @@ func (p *Parser) parseItem() *ast.Node {
 		}
 		n.Id = id
 
-	case tokenTrue:
-		p.discard()
-		n.Tag = ast.NodeBoolean
-		n.Boolean.Value = true
+	case tokenKeyword:
+		switch p.consume().data {
+		case "true":
+			n.Tag = ast.NodeBoolean
+			n.Boolean.Value = true
 
-	case tokenFalse:
-		p.discard()
-		n.Tag = ast.NodeBoolean
-		n.Boolean.Value = false
+		case "false":
+			n.Tag = ast.NodeBoolean
+			n.Boolean.Value = false
+
+		default:
+			panic("incorrect keyword data")
+		}
 
 	case tokenTag('('):
 		return p.parseList()
