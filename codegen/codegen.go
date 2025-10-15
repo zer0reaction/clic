@@ -86,7 +86,11 @@ func codegenNode(n *ast.Node) string {
 
 	case ast.NodeInteger:
 		code += "	/* Integer */\n"
-		code += fmt.Sprintf("	pushq	$%d\n", n.Integer.Value)
+		if n.Integer.Signed {
+			code += fmt.Sprintf("	pushq	$%d\n", n.Integer.SValue)
+		} else {
+			code += fmt.Sprintf("	pushq	$%d\n", n.Integer.UValue)
+		}
 
 	case ast.NodeBinOp:
 		code += codegenBinOp(n)

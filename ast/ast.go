@@ -8,6 +8,58 @@ import (
 	"lisp-go/types"
 )
 
+type Node struct {
+	Tag    NodeTag
+	Id     sym.SymbolId
+	Line   uint
+	Column uint
+
+	// Union could really help here... Sigh.
+
+	Integer struct {
+		SValue int64
+		UValue uint64
+		Signed bool
+		Size   uint8
+	}
+
+	Boolean struct {
+		Value bool
+	}
+
+	BinOp struct {
+		Tag      BinOpTag
+		ArithTag BinOpArithTag
+		CompTag  BinOpCompTag
+		Lval     *Node
+		Rval     *Node
+	}
+
+	Block struct {
+		Stmts []*Node
+	}
+
+	FunCall struct {
+		Args []*Node
+	}
+
+	If struct {
+		Exp      *Node
+		IfBody   *Node
+		ElseBody *Node
+	}
+
+	While struct {
+		Exp  *Node
+		Body *Node
+	}
+
+	Cast struct {
+		To   types.Type
+		What *Node
+	}
+}
+
 type NodeTag uint
 
 const (
@@ -57,54 +109,6 @@ const (
 	BinOpGreat
 )
 
-type Node struct {
-	Tag    NodeTag
-	Id     sym.SymbolId
-	Line   uint
-	Column uint
-
-	Integer struct {
-		Value int64
-		Type  types.Type
-	}
-
-	Boolean struct {
-		Value bool
-	}
-
-	BinOp struct {
-		Tag      BinOpTag
-		ArithTag BinOpArithTag
-		CompTag  BinOpCompTag
-		Lval     *Node
-		Rval     *Node
-	}
-
-	Block struct {
-		Stmts []*Node
-	}
-
-	FunCall struct {
-		Args []*Node
-	}
-
-	If struct {
-		Exp      *Node
-		IfBody   *Node
-		ElseBody *Node
-	}
-
-	While struct {
-		Exp  *Node
-		Body *Node
-	}
-
-	Cast struct {
-		To   types.Type
-		What *Node
-	}
-}
-
 func (n *Node) GetType() types.Type {
 	switch n.Tag {
 	case NodeBinOp:
@@ -123,7 +127,16 @@ func (n *Node) GetType() types.Type {
 		}
 
 	case NodeInteger:
-		return n.Integer.Type
+		switch n.Integer.Size {
+		case 64:
+			if n.Integer.Signed {
+				return types.S64
+			} else {
+				return types.U64
+			}
+		default:
+			panic("invalid integer size")
+		}
 
 	case NodeBoolean:
 		return types.Bool

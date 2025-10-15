@@ -174,14 +174,17 @@ func (p *Parser) parseItem() *ast.Node {
 		p.discard()
 
 		n.Tag = ast.NodeInteger
-		// TODO: This is not clear, add a cast?
-		n.Integer.Type = types.S64
 
+		// TODO: There is currently no way to type u64 literals
 		value, err := strconv.ParseInt(t.data, 0, 64)
 		if err != nil {
 			panic("incorrect integer data")
 		}
-		n.Integer.Value = value
+
+		// By default all integer literals are s64
+		n.Integer.Size = 64
+		n.Integer.Signed = true
+		n.Integer.SValue = value
 
 	case tokenIdent:
 		t := p.consume()
