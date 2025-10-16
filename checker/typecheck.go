@@ -71,7 +71,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		checkNode(n.If.Exp, r)
 
 		expType := n.If.Exp.GetType()
-		if expType != types.Bool {
+		if expType != types.GetBuiltin(types.Bool) {
 			n.If.Exp.ReportHere(r, report.ReportNonfatal,
 				"expected boolean type")
 		}
@@ -83,7 +83,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		checkNode(n.While.Exp, r)
 
 		expType := n.While.Exp.GetType()
-		if expType != types.Bool {
+		if expType != types.GetBuiltin(types.Bool) {
 			n.While.Exp.ReportHere(r, report.ReportNonfatal,
 				"expected boolean type")
 		}
@@ -104,11 +104,11 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		switch from {
 		// Do nothing
-		case types.S64:
-		case types.U64:
-		case types.Bool:
+		case types.GetBuiltin(types.S64):
+		case types.GetBuiltin(types.U64):
+		case types.GetBuiltin(types.Bool):
 
-		case types.None:
+		case types.GetBuiltin(types.None):
 			n.Cast.What.ReportHere(r, report.ReportNonfatal,
 				"can not cast from type None")
 

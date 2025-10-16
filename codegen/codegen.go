@@ -138,11 +138,11 @@ func codegenNode(n *ast.Node) string {
 
 		switch from {
 		// Do nothing
-		case types.S64:
-		case types.U64:
-		case types.Bool:
+		case types.GetBuiltin(types.S64):
+		case types.GetBuiltin(types.U64):
+		case types.GetBuiltin(types.Bool):
 
-		case types.None:
+		case types.GetBuiltin(types.None):
 			panic("trying to cast from type None")
 
 		default:

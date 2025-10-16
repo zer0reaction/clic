@@ -287,13 +287,13 @@ func (p *Parser) parseType() types.Type {
 
 	switch t.data {
 	case "s64":
-		return types.S64
+		return types.GetBuiltin(types.S64)
 
 	case "u64":
-		return types.U64
+		return types.GetBuiltin(types.U64)
 
 	case "bool":
-		return types.Bool
+		return types.GetBuiltin(types.Bool)
 
 	default:
 		panic("not implemented")

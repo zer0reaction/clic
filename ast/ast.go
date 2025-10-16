@@ -120,7 +120,7 @@ func (n *Node) GetType() types.Type {
 			return n.BinOp.Rval.GetType()
 
 		case BinOpComp:
-			return types.Bool
+			return types.GetBuiltin(types.Bool)
 
 		default:
 			panic("invalid binop tag")
@@ -130,36 +130,36 @@ func (n *Node) GetType() types.Type {
 		switch n.Integer.Size {
 		case 64:
 			if n.Integer.Signed {
-				return types.S64
+				return types.GetBuiltin(types.S64)
 			} else {
-				return types.U64
+				return types.GetBuiltin(types.U64)
 			}
 		default:
 			panic("invalid integer size")
 		}
 
 	case NodeBoolean:
-		return types.Bool
+		return types.GetBuiltin(types.Bool)
 
 	case NodeBlock:
-		return types.None
+		return types.GetBuiltin(types.None)
 
 	case NodeVariableDecl:
-		return types.None
+		return types.GetBuiltin(types.None)
 
 	case NodeVariable:
 		v := sym.GetVariable(n.Id)
 		return v.Type
 
 	case NodeFunEx:
-		return types.None
+		return types.GetBuiltin(types.None)
 
 	case NodeFunCall:
-		// TODO: Add checking types
-		return types.None
+		// TODO: Get return value type
+		return types.GetBuiltin(types.None)
 
 	case NodeIf:
-		return types.None
+		return types.GetBuiltin(types.None)
 
 	case NodeCast:
 		return n.Cast.To
