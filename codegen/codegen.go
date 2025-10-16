@@ -96,8 +96,8 @@ func codegenNode(n *ast.Node) string {
 		code += codegenBinOp(n)
 
 	case ast.NodeFunEx:
-		f := sym.GetFunction(n.Id)
-		externDecls += fmt.Sprintf(".extern %s\n", f.Name)
+		name := sym.GetName(n.Id)
+		externDecls += fmt.Sprintf(".extern %s\n", name)
 
 	case ast.NodeFunCall:
 		code += "	/* FunCall */\n"
@@ -111,8 +111,8 @@ func codegenNode(n *ast.Node) string {
 			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[i])
 		}
 
-		f := sym.GetFunction(n.Id)
-		code += fmt.Sprintf("	call	%s\n", f.Name)
+		name := sym.GetName(n.Id)
+		code += fmt.Sprintf("	call	%s\n", name)
 		code += "	pushq	%rax\n"
 
 	case ast.NodeBoolean:

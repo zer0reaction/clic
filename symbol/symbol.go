@@ -21,23 +21,23 @@ const (
 )
 
 type Variable struct {
-	Name   string
 	Type   types.Type
 	Offset uint // subtracted from RBP
 }
 
+type Function struct {
+	Params []TypedIdent
+}
+
+// Has 'Name' because it is not stored in the symbol table
 type TypedIdent struct {
 	Name string
 	Type types.Type
 }
 
-type Function struct {
-	Name   string
-	Params []TypedIdent
-}
-
 type symbol struct {
 	tag      SymbolTag
+	name     string
 	variable Variable
 	function Function
 }
@@ -73,7 +73,10 @@ func AddSymbol(name string, tag SymbolTag) SymbolId {
 		panic("symbol already exists in the current block")
 	}
 
-	s := symbol{tag: tag}
+	s := symbol{
+		name: name,
+		tag:  tag,
+	}
 	id := SymbolId(len(storage) + 1)
 
 	storage[id] = s
@@ -141,6 +144,17 @@ func LookupInBlock(name string, tag SymbolTag) SymbolId {
 		return SymbolIdNone
 	}
 	return id
+}
+
+func GetName(id SymbolId) string {
+	s, ok := storage[id]
+	if !ok {
+		panic("symbol doesn't exist")
+	}
+	if s.name == "" {
+		panic("empty name")
+	}
+	return s.name
 }
 
 func SetVariable(id SymbolId, v Variable) {

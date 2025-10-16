@@ -72,15 +72,14 @@ func (p *Parser) parseList() *ast.Node {
 		case "let":
 			n.Tag = ast.NodeVariableDecl
 
-			v := sym.Variable{}
-			v.Name, v.Type = p.parseNameWithType()
+			name, type_ := p.parseNameWithType()
 
-			if sym.ExistsInBlock(v.Name, sym.SymbolVariable) {
+			if sym.ExistsInBlock(name, sym.SymbolVariable) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
-				id := sym.AddSymbol(v.Name, sym.SymbolVariable)
-				sym.SetVariable(id, v)
+				id := sym.AddSymbol(name, sym.SymbolVariable)
+				sym.SetVariable(id, sym.Variable{Type: type_})
 				n.Id = id
 			}
 
@@ -88,7 +87,7 @@ func (p *Parser) parseList() *ast.Node {
 			n.Tag = ast.NodeFunEx
 			fun := sym.Function{}
 
-			fun.Name = p.match(tokenIdent).data
+			name := p.match(tokenIdent).data
 
 			p.match(tokenTag('('))
 
@@ -100,11 +99,11 @@ func (p *Parser) parseList() *ast.Node {
 
 			p.match(tokenTag(')'))
 
-			if sym.ExistsAnywhere(fun.Name, sym.SymbolFunction) {
+			if sym.ExistsAnywhere(name, sym.SymbolFunction) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
 			} else {
-				id := sym.AddSymbol(fun.Name, sym.SymbolFunction)
+				id := sym.AddSymbol(name, sym.SymbolFunction)
 				sym.SetFunction(id, fun)
 				n.Id = id
 			}
