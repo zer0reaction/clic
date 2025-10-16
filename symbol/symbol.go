@@ -21,7 +21,7 @@ const (
 )
 
 type Variable struct {
-	Type   types.Type
+	Type   types.TypeHash
 	Offset uint // subtracted from RBP
 }
 
@@ -32,7 +32,7 @@ type Function struct {
 // Has 'Name' because it is not stored in the symbol table
 type TypedIdent struct {
 	Name string
-	Type types.Type
+	Type types.TypeHash
 }
 
 type symbol struct {

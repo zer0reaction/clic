@@ -281,7 +281,7 @@ func (p *Parser) parseBinOp(n *ast.Node) {
 	n.BinOp.Rval = p.parseItem()
 }
 
-func (p *Parser) parseType() types.Type {
+func (p *Parser) parseType() types.TypeHash {
 	t := p.match(tokenType)
 
 	switch t.data {
@@ -299,7 +299,7 @@ func (p *Parser) parseType() types.Type {
 	}
 }
 
-func (p *Parser) parseNameWithType() (string, types.Type) {
+func (p *Parser) parseNameWithType() (string, types.TypeHash) {
 	name := p.match(tokenIdent).data
 	p.match(tokenTag(':'))
 	type_ := p.parseType()
