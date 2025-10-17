@@ -67,3 +67,9 @@ Casting is done like this:
 (let foo: u64)
 (:= foo (u64 1337))
 ```
+
+You can also infer the type:
+
+```lisp
+(auto foo: (u64 1337))
+```
