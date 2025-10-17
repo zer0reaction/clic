@@ -29,14 +29,14 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		lvalType := n.BinOp.Lval.GetType()
 		rvalType := n.BinOp.Rval.GetType()
 
-		noneType := types.GetBuiltin(types.None)
-		if lvalType == noneType {
+		voidType := types.GetBuiltin(types.Void)
+		if lvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				"lvalue is of type 'None'")
+				"lvalue is of type 'void'")
 		}
-		if rvalType == noneType {
+		if rvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				"rvalue is of type 'None'")
+				"rvalue is of type 'void'")
 		}
 
 		if lvalType != rvalType {
@@ -119,9 +119,9 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		case types.GetBuiltin(types.U64):
 		case types.GetBuiltin(types.Bool):
 
-		case types.GetBuiltin(types.None):
+		case types.GetBuiltin(types.Void):
 			n.Cast.What.ReportHere(r, report.ReportNonfatal,
-				"can not cast from type None")
+				"can not cast from type 'void'")
 
 		default:
 			panic("not implemented")

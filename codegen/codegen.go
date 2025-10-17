@@ -141,8 +141,8 @@ func codegenNode(n *ast.Node) string {
 		case types.GetBuiltin(types.U64):
 		case types.GetBuiltin(types.Bool):
 
-		case types.GetBuiltin(types.None):
-			panic("trying to cast from type None")
+		case types.GetBuiltin(types.Void):
+			panic("trying to cast from type 'void'")
 
 		default:
 			panic("not implemented")

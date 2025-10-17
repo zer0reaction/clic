@@ -21,7 +21,7 @@ type TypeTag uint
 
 const (
 	typeError TypeTag = iota
-	None
+	Void
 	S64
 	U64
 	Bool
@@ -56,7 +56,7 @@ func hashType(dummy TypeDummy) TypeHash {
 	tagHash := TypeHash(hashU32(uint32(dummy.Tag)))
 
 	switch dummy.Tag {
-	case None:
+	case Void:
 		return tagHash
 
 	case S64:

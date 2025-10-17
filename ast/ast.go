@@ -145,21 +145,21 @@ func (n *Node) GetType() types.TypeHash {
 		return types.GetBuiltin(types.Bool)
 
 	case NodeBlock:
-		return types.GetBuiltin(types.None)
+		return types.GetBuiltin(types.Void)
 
 	case NodeVariable:
 		v := sym.GetVariable(n.Id)
 		return v.Type
 
 	case NodeFunEx:
-		return types.GetBuiltin(types.None)
+		return types.GetBuiltin(types.Void)
 
 	case NodeFunCall:
 		// TODO: Get return value type
-		return types.GetBuiltin(types.None)
+		return types.GetBuiltin(types.Void)
 
 	case NodeIf:
-		return types.GetBuiltin(types.None)
+		return types.GetBuiltin(types.Void)
 
 	case NodeCast:
 		return n.Cast.To
