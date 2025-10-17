@@ -150,6 +150,9 @@ func codegenNode(n *ast.Node) string {
 
 		code += codegenNode(n.Cast.What)
 
+	case ast.NodeEmpty:
+		// Do nothing
+
 	default:
 		panic("not implemented")
 	}

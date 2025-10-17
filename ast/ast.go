@@ -78,6 +78,7 @@ const (
 	NodeIf
 	NodeWhile
 	NodeCast
+	NodeEmpty
 )
 
 type BinOpTag uint
@@ -163,6 +164,9 @@ func (n *Node) GetType() types.TypeHash {
 
 	case NodeCast:
 		return n.Cast.To
+
+	case NodeEmpty:
+		return types.GetBuiltin(types.Void)
 
 	default:
 		panic("not implemented")

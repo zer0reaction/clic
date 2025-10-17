@@ -132,6 +132,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	case ast.NodeBoolean:
 	case ast.NodeVariable:
 	case ast.NodeFunEx:
+	case ast.NodeEmpty:
 
 	default:
 		panic("node not implemented")

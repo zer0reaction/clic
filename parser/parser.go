@@ -57,6 +57,10 @@ func (p *Parser) parseList() *ast.Node {
 	case tokenBinOp:
 		p.parseBinOp(&n)
 
+	case tokenTag(')'):
+		n.Tag = ast.NodeEmpty
+		// Matched at the end of function
+
 	case tokenTag('('):
 		n.Tag = ast.NodeBlock
 
