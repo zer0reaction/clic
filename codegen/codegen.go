@@ -234,7 +234,7 @@ func codegenBinOp(n *ast.Node) string {
 			code += "	pushq	%rdx\n"
 
 		default:
-			panic("invalid arith tag")
+			panic("not implemented")
 		}
 
 	case ast.BinOpComp:
@@ -306,11 +306,11 @@ func codegenBinOp(n *ast.Node) string {
 			code += "	pushq	%rsi\n"
 
 		default:
-			panic("invalid comp tag")
+			panic("not implemented")
 		}
 
 	default:
-		panic("invalid binop tag")
+		panic("not implemented")
 	}
 
 	return code

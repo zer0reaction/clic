@@ -44,8 +44,9 @@ func (r *Reporter) Report(f Form) {
 	case ReportNonfatal:
 		fmt.Printf("%s:%d:%d: error: %s\n",
 			r.FileName, f.Line, f.Column, f.Msg)
+
 	default:
-		panic("unexpected report tag")
+		panic("not implemented")
 	}
 }
 

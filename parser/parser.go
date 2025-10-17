@@ -167,7 +167,7 @@ func (p *Parser) parseList() *ast.Node {
 			n.While.Body = p.parseList()
 
 		default:
-			panic("incorrect keyword data")
+			panic("not implemented")
 		}
 
 	case tokenIdent:
@@ -250,7 +250,7 @@ func (p *Parser) parseItem() *ast.Node {
 			n.Boolean.Value = false
 
 		default:
-			panic("incorrect keyword data")
+			panic("not implemented")
 		}
 
 	case tokenTag('('):

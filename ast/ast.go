@@ -127,7 +127,7 @@ func (n *Node) GetType() types.TypeHash {
 			return types.GetBuiltin(types.Bool)
 
 		default:
-			panic("invalid binop tag")
+			panic("not implemented")
 		}
 
 	case NodeInteger:
@@ -139,7 +139,7 @@ func (n *Node) GetType() types.TypeHash {
 				return types.GetBuiltin(types.U64)
 			}
 		default:
-			panic("invalid integer size")
+			panic("not implemented")
 		}
 
 	case NodeBoolean:

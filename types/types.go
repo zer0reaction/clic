@@ -3,8 +3,6 @@
 
 package types
 
-// TODO: Add ToString() and add to error reports
-
 type TypeHash uint32
 
 // Can be later registered as a type, but you need to register all the
@@ -29,6 +27,38 @@ const (
 )
 
 var table = make(map[TypeHash]TypeDummy)
+
+func (hash TypeHash) Stringify() string {
+	dummy, ok := table[hash]
+	if !ok {
+		panic("type not in table")
+	}
+
+	switch dummy.Tag {
+	case Void:
+		return "void"
+
+	case S64:
+		return "s64"
+
+	case U64:
+		return "u64"
+
+	case Bool:
+		return "bool"
+
+	case Struct:
+		s := "(struct "
+		for _, fieldHash := range dummy.Fields {
+			s += fieldHash.Stringify() + " "
+		}
+		s += ")"
+		return s
+
+	default:
+		panic("not implemented")
+	}
+}
 
 func GetBuiltin(tag TypeTag) TypeHash {
 	hash := TypeHash(hashU32(uint32(tag)))

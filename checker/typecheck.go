@@ -28,20 +28,25 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		lvalType := n.BinOp.Lval.GetType()
 		rvalType := n.BinOp.Rval.GetType()
-
 		voidType := types.GetBuiltin(types.Void)
+
+		lvalStr := lvalType.Stringify()
+		rvalStr := rvalType.Stringify()
+		voidStr := voidType.Stringify()
+
 		if lvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				"lvalue is of type 'void'")
+				fmt.Sprintf("lvalue is of type '%s'", voidStr))
 		}
 		if rvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				"rvalue is of type 'void'")
+				fmt.Sprintf("rvalue is of type '%s'", voidStr))
 		}
 
 		if lvalType != rvalType {
 			n.ReportHere(r, report.ReportNonfatal,
-				"operand type mismatch")
+				fmt.Sprintf("operand type mismatch, got '%s' and '%s'",
+					lvalStr, rvalStr))
 		}
 
 		isAssign := (n.BinOp.Tag == ast.BinOpAssign)
@@ -59,32 +64,40 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		fun := sym.GetFunction(n.Id)
 
 		if len(n.FunCall.Args) != len(fun.Params) {
-			var where *ast.Node
-
-			if len(n.FunCall.Args) > 0 {
-				where = n.FunCall.Args[0]
-			} else {
-				where = n
-			}
-
-			where.ReportHere(r, report.ReportNonfatal,
+			n.ReportHere(r, report.ReportNonfatal,
 				fmt.Sprintf("expected %d arguments, got %d", len(fun.Params), len(n.FunCall.Args)))
 		}
 
+		mismatch := false
 		for i, arg := range n.FunCall.Args {
 			if arg.GetType() != fun.Params[i].Type {
-				n.ReportHere(r, report.ReportNonfatal,
-					"mismatched types in function call")
+				mismatch = true
+				break
 			}
+		}
+		if mismatch {
+			got := ""
+			expected := ""
+			for _, arg := range n.FunCall.Args {
+				got += arg.GetType().Stringify() + " "
+			}
+			for _, param := range fun.Params {
+				expected += param.Type.Stringify() + " "
+			}
+
+			msg := fmt.Sprintf("mismatched types in function call,\n\tgot %s\n\texpected %s",
+				got, expected)
+			n.ReportHere(r, report.ReportNonfatal, msg)
 		}
 
 	case ast.NodeIf:
 		checkNode(n.If.Exp, r)
 
 		expType := n.If.Exp.GetType()
-		if expType != types.GetBuiltin(types.Bool) {
+		boolType := types.GetBuiltin(types.Bool)
+		if expType != boolType {
 			n.If.Exp.ReportHere(r, report.ReportNonfatal,
-				"expected boolean type")
+				fmt.Sprintf("expected type '%s'", boolType.Stringify()))
 		}
 
 		checkNode(n.If.IfBody, r)
@@ -94,9 +107,10 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		checkNode(n.While.Exp, r)
 
 		expType := n.While.Exp.GetType()
-		if expType != types.GetBuiltin(types.Bool) {
+		boolType := types.GetBuiltin(types.Bool)
+		if expType != boolType {
 			n.While.Exp.ReportHere(r, report.ReportNonfatal,
-				"expected boolean type")
+				fmt.Sprintf("expected type '%s'", boolType.Stringify()))
 		}
 
 		checkNode(n.While.Body, r)
@@ -120,8 +134,9 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		case types.GetBuiltin(types.Bool):
 
 		case types.GetBuiltin(types.Void):
-			n.Cast.What.ReportHere(r, report.ReportNonfatal,
-				"can not cast from type 'void'")
+			voidType := types.GetBuiltin(types.Void)
+			n.ReportHere(r, report.ReportNonfatal,
+				fmt.Sprintf("can't cast from type '%s'", voidType.Stringify()))
 
 		default:
 			panic("not implemented")
@@ -135,6 +150,6 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	case ast.NodeEmpty:
 
 	default:
-		panic("node not implemented")
+		panic("not implemented")
 	}
 }

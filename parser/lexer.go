@@ -91,7 +91,7 @@ func (tag tokenTag) toString() string {
 		return "EOF"
 
 	default:
-		panic("unrecognized token")
+		panic("not implemented")
 	}
 }
 
