@@ -27,6 +27,10 @@ type Node struct {
 		Value bool
 	}
 
+	Variable struct {
+		IsDecl bool
+	}
+
 	BinOp struct {
 		Tag      BinOpTag
 		ArithTag BinOpArithTag
@@ -68,7 +72,6 @@ const (
 	NodeInteger
 	NodeBoolean
 	NodeBlock
-	NodeVariableDecl
 	NodeVariable
 	NodeFunEx
 	NodeFunCall
@@ -142,9 +145,6 @@ func (n *Node) GetType() types.TypeHash {
 		return types.GetBuiltin(types.Bool)
 
 	case NodeBlock:
-		return types.GetBuiltin(types.None)
-
-	case NodeVariableDecl:
 		return types.GetBuiltin(types.None)
 
 	case NodeVariable:

@@ -28,6 +28,17 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		lvalType := n.BinOp.Lval.GetType()
 		rvalType := n.BinOp.Rval.GetType()
+
+		noneType := types.GetBuiltin(types.None)
+		if lvalType == noneType {
+			n.ReportHere(r, report.ReportNonfatal,
+				"lvalue is of type 'None'")
+		}
+		if rvalType == noneType {
+			n.ReportHere(r, report.ReportNonfatal,
+				"rvalue is of type 'None'")
+		}
+
 		if lvalType != rvalType {
 			n.ReportHere(r, report.ReportNonfatal,
 				"operand type mismatch")
@@ -119,7 +130,6 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	// Do nothing
 	case ast.NodeInteger:
 	case ast.NodeBoolean:
-	case ast.NodeVariableDecl:
 	case ast.NodeVariable:
 	case ast.NodeFunEx:
 

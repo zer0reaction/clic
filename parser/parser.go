@@ -70,7 +70,8 @@ func (p *Parser) parseList() *ast.Node {
 	case tokenKeyword:
 		switch p.consume().data {
 		case "let":
-			n.Tag = ast.NodeVariableDecl
+			n.Tag = ast.NodeVariable
+			n.Variable.IsDecl = true
 
 			name, type_ := p.parseNameWithType()
 
@@ -81,6 +82,43 @@ func (p *Parser) parseList() *ast.Node {
 				id := sym.AddSymbol(name, sym.SymbolVariable)
 				sym.SetVariable(id, sym.Variable{Type: type_})
 				n.Id = id
+			}
+
+		case "auto":
+			// Type is inferred.
+			//              n
+			//             / \
+			// new variable   item
+
+			n.Tag = ast.NodeBinOp
+			n.BinOp.Tag = ast.BinOpAssign
+
+			ident := p.match(tokenIdent)
+			name := ident.data
+
+			p.match(tokenTag(':'))
+
+			rval := p.parseItem()
+			n.BinOp.Rval = rval
+
+			if sym.ExistsInBlock(name, sym.SymbolVariable) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"variable is already declared")
+			} else {
+				lval := ast.Node{
+					Tag:    ast.NodeVariable,
+					Line:   ident.line,
+					Column: ident.column,
+				}
+				lval.Variable.IsDecl = true
+
+				// Type is determined in the parser,
+				// so it should be known by now.
+				id := sym.AddSymbol(name, sym.SymbolVariable)
+				sym.SetVariable(id, sym.Variable{Type: rval.GetType()})
+				lval.Id = id
+
+				n.BinOp.Lval = &lval
 			}
 
 		case "exfun":

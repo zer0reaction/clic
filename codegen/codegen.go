@@ -70,19 +70,18 @@ func codegenNode(n *ast.Node) string {
 			code += codegenNode(node)
 		}
 
-	case ast.NodeVariableDecl:
-		v := sym.GetVariable(n.Id)
-		v.Offset = stackOffset + varBytesize
-		sym.SetVariable(n.Id, v)
-
-		stackOffset += varBytesize
-
 	case ast.NodeVariable:
 		v := sym.GetVariable(n.Id)
 
-		code += "	/* Variable */\n"
-		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", v.Offset)
-		code += "	pushq	%rax\n"
+		if n.Variable.IsDecl {
+			v.Offset = stackOffset + varBytesize
+			sym.SetVariable(n.Id, v)
+			stackOffset += varBytesize
+		} else {
+			code += "	/* Variable */\n"
+			code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", v.Offset)
+			code += "	pushq	%rax\n"
+		}
 
 	case ast.NodeInteger:
 		code += "	/* Integer */\n"
