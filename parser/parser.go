@@ -323,7 +323,7 @@ func (p *Parser) parseBinOp(n *ast.Node) {
 	n.BinOp.Rval = p.parseItem()
 }
 
-func (p *Parser) parseType() types.TypeHash {
+func (p *Parser) parseType() types.TypeId {
 	t := p.match(tokenType)
 
 	switch t.data {
@@ -336,12 +336,27 @@ func (p *Parser) parseType() types.TypeHash {
 	case "bool":
 		return types.GetBuiltin(types.Bool)
 
+	case "struct":
+		struct_ := types.TypeNode{Tag: types.Struct}
+
+		p.match(tokenTag('('))
+
+		for p.peek(0).tag != tokenTag(')') {
+			name, type_ := p.parseNameWithType()
+			field := types.Field{Type: type_, Name: name}
+			struct_.Fields = append(struct_.Fields, field)
+		}
+
+		p.match(tokenTag(')'))
+
+		return types.Register(struct_)
+
 	default:
 		panic("not implemented")
 	}
 }
 
-func (p *Parser) parseNameWithType() (string, types.TypeHash) {
+func (p *Parser) parseNameWithType() (string, types.TypeId) {
 	name := p.match(tokenIdent).data
 	p.match(tokenTag(':'))
 	type_ := p.parseType()

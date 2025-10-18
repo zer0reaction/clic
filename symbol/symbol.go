@@ -18,10 +18,11 @@ const (
 	symbolError SymbolTag = iota
 	SymbolVariable
 	SymbolFunction
+	SymbolType
 )
 
 type Variable struct {
-	Type   types.TypeHash
+	Type   types.TypeId
 	Offset uint // subtracted from RBP
 }
 
@@ -29,10 +30,14 @@ type Function struct {
 	Params []TypedIdent
 }
 
+type Type struct {
+	Id types.TypeId
+}
+
 // Has 'Name' because it is not stored in the symbol table
 type TypedIdent struct {
 	Name string
-	Type types.TypeHash
+	Type types.TypeId
 }
 
 type symbol struct {

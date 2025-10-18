@@ -1,40 +1,60 @@
-// A really scuffed type system. Type is represented as a hash, and
-// stored in a map. Will break things if there is a hash collision.
+// A really scuffed type system.
 
 package types
 
-type TypeHash uint32
+type TypeId uint
 
-// Can be later registered as a type, but you need to register all the
-// nested types recursively first
-type TypeDummy struct {
+type TypeNode struct {
 	Tag TypeTag
 
 	// Struct & union
-	Fields []TypeHash
+	Fields []Field
 }
 
-// If you want to get the actual 'Type', use GetBuiltin()
+type Field struct {
+	Type TypeId
+	Name string // Empty string means anonymous
+}
+
 type TypeTag uint
 
 const (
-	typeError TypeTag = iota
+	typeTagError TypeTag = iota
+
+	// Base types (defined here for simplicity)
 	Void
 	S64
 	U64
 	Bool
+
+	// Compound types
 	Struct
 )
 
-var table = make(map[TypeHash]TypeDummy)
+var table = []TypeNode{}
+var builtin = map[TypeTag]TypeId{}
 
-func (hash TypeHash) Stringify() string {
-	dummy, ok := table[hash]
+func Register(node TypeNode) TypeId {
+	id := TypeId(len(table))
+	table = append(table, node)
+	return id
+}
+
+func GetBuiltin(tag TypeTag) TypeId {
+	id, ok := builtin[tag]
 	if !ok {
-		panic("type not in table")
+		id = Register(TypeNode{Tag: tag})
+		builtin[tag] = id
 	}
+	return id
+}
 
-	switch dummy.Tag {
+func (id TypeId) Stringify() string {
+	// Should not break on builtin types. We register the type
+	// when we get an id.
+	node := table[id]
+
+	switch node.Tag {
 	case Void:
 		return "void"
 
@@ -49,8 +69,8 @@ func (hash TypeHash) Stringify() string {
 
 	case Struct:
 		s := "(struct "
-		for _, fieldHash := range dummy.Fields {
-			s += fieldHash.Stringify() + " "
+		for _, field := range node.Fields {
+			s += field.Type.Stringify() + " "
 		}
 		s += ")"
 		return s
@@ -58,59 +78,4 @@ func (hash TypeHash) Stringify() string {
 	default:
 		panic("not implemented")
 	}
-}
-
-func GetBuiltin(tag TypeTag) TypeHash {
-	hash := TypeHash(hashU32(uint32(tag)))
-
-	if _, ok := table[hash]; !ok {
-		table[hash] = TypeDummy{Tag: tag}
-	}
-
-	return hash
-}
-
-func Register(dummy TypeDummy) TypeHash {
-	hash := hashType(dummy)
-
-	if _, ok := table[hash]; !ok {
-		table[hash] = dummy
-	}
-
-	return hash
-}
-
-// 'Tag' > 0, so the hash algorithm should work. This will probably
-// break, but will do for now.
-func hashType(dummy TypeDummy) TypeHash {
-	tagHash := TypeHash(hashU32(uint32(dummy.Tag)))
-
-	switch dummy.Tag {
-	case Void:
-		return tagHash
-
-	case S64:
-		return tagHash
-
-	case U64:
-		return tagHash
-
-	case Bool:
-		return tagHash
-
-	case Struct:
-		hash := TypeHash(hashU32(uint32(dummy.Tag)))
-		for _, field := range dummy.Fields {
-			hash = hashType(table[field])
-		}
-		return hash
-
-	default:
-		panic("not implemented")
-	}
-}
-
-func hashU32(n uint32) uint32 {
-	const knuth uint32 = 2654435769
-	return n * knuth
 }

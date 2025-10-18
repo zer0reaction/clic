@@ -59,7 +59,7 @@ type Node struct {
 	}
 
 	Cast struct {
-		To   types.TypeHash
+		To   types.TypeId
 		What *Node
 	}
 }
@@ -113,7 +113,7 @@ const (
 	BinOpGreat
 )
 
-func (n *Node) GetType() types.TypeHash {
+func (n *Node) GetType() types.TypeId {
 	switch n.Tag {
 	case NodeBinOp:
 		switch n.BinOp.Tag {

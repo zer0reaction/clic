@@ -71,6 +71,8 @@ func codegenNode(n *ast.Node) string {
 		}
 
 	case ast.NodeVariable:
+		// TODO: Check the type tag
+
 		v := sym.GetVariable(n.Id)
 
 		if n.Variable.IsDecl {
