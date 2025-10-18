@@ -149,7 +149,7 @@ func (n *Node) GetType() types.TypeId {
 		return types.GetBuiltin(types.Void)
 
 	case NodeVariable:
-		v := sym.GetVariable(n.Id)
+		v := sym.Get(n.Id).Variable
 		return v.Type
 
 	case NodeFunEx:

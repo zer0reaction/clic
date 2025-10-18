@@ -16,21 +16,21 @@ type SymbolTag uint
 
 const (
 	symbolError SymbolTag = iota
-	SymbolVariable
-	SymbolFunction
-	SymbolType
+	Variable
+	Function
+	Type
 )
 
-type Variable struct {
+type sVariable struct {
 	Type   types.TypeId
 	Offset uint // subtracted from RBP
 }
 
-type Function struct {
+type sFunction struct {
 	Params []TypedIdent
 }
 
-type Type struct {
+type sType struct {
 	Id types.TypeId
 }
 
@@ -41,10 +41,11 @@ type TypedIdent struct {
 }
 
 type symbol struct {
-	tag      SymbolTag
-	name     string
-	variable Variable
-	function Function
+	Tag  SymbolTag
+	Name string
+
+	Variable sVariable
+	Function sFunction
 }
 
 type table struct {
@@ -72,15 +73,15 @@ func PopBlock() {
 	current = current.prev
 }
 
-func AddSymbol(name string, tag SymbolTag) SymbolId {
+func AddToBlock(name string, tag SymbolTag) SymbolId {
 	_, ok := current.data[name]
 	if ok {
 		panic("symbol already exists in the current block")
 	}
 
 	s := symbol{
-		name: name,
-		tag:  tag,
+		Name: name,
+		Tag:  tag,
 	}
 	id := SymbolId(len(storage) + 1)
 
@@ -88,6 +89,26 @@ func AddSymbol(name string, tag SymbolTag) SymbolId {
 	current.data[name] = id
 
 	return id
+}
+
+func Get(id SymbolId) symbol {
+	s, ok := storage[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
+	}
+
+	return s
+}
+
+func Set(id SymbolId, new symbol) {
+	_, ok := storage[id]
+
+	if !ok {
+		panic("symbol doesn't exist")
+	}
+
+	storage[id] = new
 }
 
 func ExistsAnywhere(name string, tag SymbolTag) bool {
@@ -126,7 +147,7 @@ func LookupAnywhere(name string, tag SymbolTag) SymbolId {
 			panic("symbol not found")
 		}
 		// TODO: Is this the right thing to do?
-		if s.tag != tag {
+		if s.Tag != tag {
 			return SymbolIdNone
 		}
 		return id
@@ -145,73 +166,8 @@ func LookupInBlock(name string, tag SymbolTag) SymbolId {
 		panic("symbol not found")
 	}
 	// TODO: Is this the right thing to do?
-	if s.tag != tag {
+	if s.Tag != tag {
 		return SymbolIdNone
 	}
 	return id
-}
-
-func GetName(id SymbolId) string {
-	s, ok := storage[id]
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-	if s.name == "" {
-		panic("empty name")
-	}
-	return s.name
-}
-
-func SetVariable(id SymbolId, v Variable) {
-	s, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-	if s.tag != SymbolVariable {
-		panic("symbol's type is not a variable")
-	}
-
-	s.variable = v
-	storage[id] = s
-}
-
-func GetVariable(id SymbolId) Variable {
-	s, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-	if s.tag != SymbolVariable {
-		panic("symbol's type is not a variable")
-	}
-
-	return s.variable
-}
-
-func SetFunction(id SymbolId, f Function) {
-	s, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-	if s.tag != SymbolFunction {
-		panic("symbol's type is not a function")
-	}
-
-	s.function = f
-	storage[id] = s
-}
-
-func GetFunction(id SymbolId) Function {
-	s, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-	if s.tag != SymbolFunction {
-		panic("symbol's type is not a function")
-	}
-
-	return s.function
 }

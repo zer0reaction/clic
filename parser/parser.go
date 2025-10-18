@@ -79,12 +79,16 @@ func (p *Parser) parseList() *ast.Node {
 
 			name, type_ := p.parseNameWithType()
 
-			if sym.ExistsInBlock(name, sym.SymbolVariable) {
+			if sym.ExistsInBlock(name, sym.Variable) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
-				id := sym.AddSymbol(name, sym.SymbolVariable)
-				sym.SetVariable(id, sym.Variable{Type: type_})
+				id := sym.AddToBlock(name, sym.Variable)
+
+				s := sym.Get(id)
+				s.Variable.Type = type_
+				sym.Set(id, s)
+
 				n.Id = id
 			}
 
@@ -105,7 +109,7 @@ func (p *Parser) parseList() *ast.Node {
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
-			if sym.ExistsInBlock(name, sym.SymbolVariable) {
+			if sym.ExistsInBlock(name, sym.Variable) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
@@ -118,35 +122,42 @@ func (p *Parser) parseList() *ast.Node {
 
 				// Type is determined in the parser,
 				// so it should be known by now.
-				id := sym.AddSymbol(name, sym.SymbolVariable)
-				sym.SetVariable(id, sym.Variable{Type: rval.GetType()})
-				lval.Id = id
+				id := sym.AddToBlock(name, sym.Variable)
 
+				s := sym.Get(id)
+				s.Variable.Type = rval.GetType()
+				sym.Set(id, s)
+
+				lval.Id = id
 				n.BinOp.Lval = &lval
 			}
 
 		case "exfun":
 			n.Tag = ast.NodeFunEx
-			fun := sym.Function{}
 
 			name := p.match(tokenIdent).data
 
 			p.match(tokenTag('('))
 
+			params := []sym.TypedIdent{}
 			for p.peek(0).tag != tokenTag(')') {
 				param := sym.TypedIdent{}
 				param.Name, param.Type = p.parseNameWithType()
-				fun.Params = append(fun.Params, param)
+				params = append(params, param)
 			}
 
 			p.match(tokenTag(')'))
 
-			if sym.ExistsAnywhere(name, sym.SymbolFunction) {
+			if sym.ExistsAnywhere(name, sym.Function) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
 			} else {
-				id := sym.AddSymbol(name, sym.SymbolFunction)
-				sym.SetFunction(id, fun)
+				id := sym.AddToBlock(name, sym.Function)
+
+				s := sym.Get(id)
+				s.Function.Params = params
+				sym.Set(id, s)
+
 				n.Id = id
 			}
 
@@ -175,7 +186,7 @@ func (p *Parser) parseList() *ast.Node {
 
 		n.Tag = ast.NodeFunCall
 
-		id := sym.LookupAnywhere(t.data, sym.SymbolFunction)
+		id := sym.LookupAnywhere(t.data, sym.Function)
 		if id == sym.SymbolIdNone {
 			n.ReportHere(p.r,
 				report.ReportNonfatal,
@@ -232,7 +243,7 @@ func (p *Parser) parseItem() *ast.Node {
 
 		n.Tag = ast.NodeVariable
 
-		id := sym.LookupAnywhere(t.data, sym.SymbolVariable)
+		id := sym.LookupAnywhere(t.data, sym.Variable)
 		if id == sym.SymbolIdNone {
 			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable does not exist")

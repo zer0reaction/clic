@@ -61,7 +61,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			checkNode(node, r)
 		}
 
-		fun := sym.GetFunction(n.Id)
+		fun := sym.Get(n.Id).Function
 
 		if len(n.FunCall.Args) != len(fun.Params) {
 			n.ReportHere(r, report.ReportNonfatal,
