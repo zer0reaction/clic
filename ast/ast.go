@@ -78,6 +78,7 @@ const (
 	NodeIf
 	NodeWhile
 	NodeCast
+	NodeTypedef
 	NodeEmpty
 )
 

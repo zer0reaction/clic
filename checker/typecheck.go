@@ -36,16 +36,16 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		if lvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("lvalue is of type '%s'", voidStr))
+				fmt.Sprintf("lvalue is of type %s", voidStr))
 		}
 		if rvalType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("rvalue is of type '%s'", voidStr))
+				fmt.Sprintf("rvalue is of type %s", voidStr))
 		}
 
 		if lvalType != rvalType {
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("operand type mismatch, got '%s' and '%s'",
+				fmt.Sprintf("operand type mismatch, got %s and %s",
 					lvalStr, rvalStr))
 		}
 
@@ -85,7 +85,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 				expected += param.Type.Stringify() + " "
 			}
 
-			msg := fmt.Sprintf("mismatched types in function call,\n\tgot %s\n\texpected %s",
+			msg := fmt.Sprintf("mismatched types in function call\n\tgot %s\n\texpected %s",
 				got, expected)
 			n.ReportHere(r, report.ReportNonfatal, msg)
 		}
@@ -97,7 +97,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.If.Exp.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("expected type '%s'", boolType.Stringify()))
+				fmt.Sprintf("expected type %s", boolType.Stringify()))
 		}
 
 		checkNode(n.If.IfBody, r)
@@ -110,7 +110,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.While.Exp.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("expected type '%s'", boolType.Stringify()))
+				fmt.Sprintf("expected type %s", boolType.Stringify()))
 		}
 
 		checkNode(n.While.Body, r)
@@ -136,7 +136,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		case types.GetBuiltin(types.Void):
 			voidType := types.GetBuiltin(types.Void)
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("can't cast from type '%s'", voidType.Stringify()))
+				fmt.Sprintf("can't cast from type %s", voidType.Stringify()))
 
 		default:
 			panic("not implemented")
@@ -147,6 +147,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	case ast.NodeBoolean:
 	case ast.NodeVariable:
 	case ast.NodeFunEx:
+	case ast.NodeTypedef:
 	case ast.NodeEmpty:
 
 	default:

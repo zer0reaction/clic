@@ -9,7 +9,7 @@ import (
 type SymbolId uint
 
 const (
-	SymbolIdNone SymbolId = 0
+	IdNone SymbolId = 0
 )
 
 type SymbolTag uint
@@ -46,6 +46,7 @@ type symbol struct {
 
 	Variable sVariable
 	Function sFunction
+	Type     sType
 }
 
 type table struct {
@@ -115,21 +116,26 @@ func ExistsAnywhere(name string, tag SymbolTag) bool {
 	ptr := current
 
 	for ptr != nil {
-		_, ok := ptr.data[name]
+		id, ok := ptr.data[name]
 		if !ok {
 			ptr = ptr.prev
 			continue
-		} else {
-			return true
 		}
+
+		return (storage[id].Tag == tag)
 	}
 
 	return false
 }
 
 func ExistsInBlock(name string, tag SymbolTag) bool {
-	_, ok := current.data[name]
-	return ok
+	id, ok := current.data[name]
+
+	if !ok {
+		return false
+	}
+
+	return (storage[id].Tag == tag)
 }
 
 func LookupAnywhere(name string, tag SymbolTag) SymbolId {
@@ -148,17 +154,18 @@ func LookupAnywhere(name string, tag SymbolTag) SymbolId {
 		}
 		// TODO: Is this the right thing to do?
 		if s.Tag != tag {
-			return SymbolIdNone
+			return IdNone
 		}
 		return id
 	}
-	return SymbolIdNone
+
+	return IdNone
 }
 
 func LookupInBlock(name string, tag SymbolTag) SymbolId {
 	id, ok := current.data[name]
 	if !ok {
-		return SymbolIdNone
+		return IdNone
 	}
 
 	s, ok := storage[id]
@@ -167,7 +174,7 @@ func LookupInBlock(name string, tag SymbolTag) SymbolId {
 	}
 	// TODO: Is this the right thing to do?
 	if s.Tag != tag {
-		return SymbolIdNone
+		return IdNone
 	}
 	return id
 }

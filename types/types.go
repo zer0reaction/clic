@@ -2,10 +2,15 @@
 
 package types
 
-type TypeId uint
+type TypeId int
+
+const IdNone TypeId = -1
 
 type TypeNode struct {
 	Tag TypeTag
+
+	// Type defenition
+	DefinedAs TypeId
 
 	// Struct & union
 	Fields []Field
@@ -26,6 +31,9 @@ const (
 	S64
 	U64
 	Bool
+
+	// New type defenition
+	Definition
 
 	// Compound types
 	Struct
@@ -68,12 +76,15 @@ func (id TypeId) Stringify() string {
 		return "bool"
 
 	case Struct:
-		s := "(struct "
+		s := "struct ("
 		for _, field := range node.Fields {
-			s += field.Type.Stringify() + " "
+			s += field.Name + ": " + field.Type.Stringify() + " "
 		}
 		s += ")"
 		return s
+
+	case Definition:
+		return "type, defined as " + node.DefinedAs.Stringify()
 
 	default:
 		panic("not implemented")

@@ -3,6 +3,7 @@
 package parser
 
 import (
+	"fmt"
 	"lisp-go/ast"
 	"lisp-go/report"
 	sym "lisp-go/symbol"
@@ -177,24 +178,55 @@ func (p *Parser) parseList() *ast.Node {
 			n.While.Exp = p.parseItem()
 			n.While.Body = p.parseList()
 
+		case "typedef":
+			n.Tag = ast.NodeTypedef
+
+			name, toDef := p.parseNameWithType()
+
+			typeNode := types.TypeNode{
+				Tag:       types.Definition,
+				DefinedAs: toDef,
+			}
+			def := types.Register(typeNode)
+
+			id := sym.AddToBlock(name, sym.Type)
+
+			s := sym.Get(id)
+			s.Type.Id = def
+			sym.Set(id, s)
+
+			n.Id = id
+
 		default:
 			panic("not implemented")
 		}
 
 	case tokenIdent:
-		t := p.consume()
+		name := p.peek(0).data
 
-		n.Tag = ast.NodeFunCall
+		switch {
+		case sym.ExistsAnywhere(name, sym.Type):
+			n.Tag = ast.NodeCast
+			n.Cast.To = p.parseType()
+			n.Cast.What = p.parseItem()
 
-		id := sym.LookupAnywhere(t.data, sym.Function)
-		if id == sym.SymbolIdNone {
+		case sym.ExistsAnywhere(name, sym.Function):
+			p.match(tokenIdent)
+			n.Tag = ast.NodeFunCall
+
+			id := sym.LookupAnywhere(name, sym.Function)
+			if id == sym.IdNone {
+				panic("unreachable")
+			}
+			n.Id = id
+
+			n.FunCall.Args = p.collectItems()
+
+		default:
 			n.ReportHere(p.r,
 				report.ReportNonfatal,
-				"function is not declared")
+				fmt.Sprintf("%s is not declared", name))
 		}
-		n.Id = id
-
-		n.FunCall.Args = p.collectItems()
 
 	case tokenType:
 		n.Tag = ast.NodeCast
@@ -244,7 +276,7 @@ func (p *Parser) parseItem() *ast.Node {
 		n.Tag = ast.NodeVariable
 
 		id := sym.LookupAnywhere(t.data, sym.Variable)
-		if id == sym.SymbolIdNone {
+		if id == sym.IdNone {
 			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable does not exist")
 		}
@@ -335,6 +367,29 @@ func (p *Parser) parseBinOp(n *ast.Node) {
 }
 
 func (p *Parser) parseType() types.TypeId {
+	if p.peek(0).tag == tokenIdent {
+		t := p.match(tokenIdent)
+
+		name := t.data
+		symId := sym.LookupAnywhere(name, sym.Type)
+
+		typeId := types.IdNone
+
+		if symId == sym.IdNone {
+			p.r.Report(report.Form{
+				Tag:    report.ReportNonfatal,
+				Line:   t.line,
+				Column: t.column,
+				Msg:    fmt.Sprintf("type '%s' is not defined", name),
+			})
+			// Returning IdNone, scary!
+		} else {
+			typeId = sym.Get(symId).Type.Id
+		}
+
+		return typeId
+	}
+
 	t := p.match(tokenType)
 
 	switch t.data {
