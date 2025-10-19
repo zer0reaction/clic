@@ -46,7 +46,6 @@ type token struct {
 	data   string
 }
 
-// TODO: Probably need to refactor to tokenKeyword
 var tokenPatterns = []struct {
 	tag       tokenTag
 	pattern   *regexp.Regexp
