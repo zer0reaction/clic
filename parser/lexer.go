@@ -10,9 +10,14 @@ import (
 )
 
 type lexer struct {
-	data     string
-	line     uint
-	column   uint
+	// This is done to prevent emmiting multiple EOFs. Set when
+	// EOF is emitted.
+	doneLexing bool
+
+	data   string
+	line   uint
+	column uint
+
 	writeInd uint
 	readInd  uint
 	rbuffer  [ringSize]token
@@ -20,11 +25,24 @@ type lexer struct {
 
 const ringSize uint = 16
 
+// TODO: Apply some DOD principles in here. Token should only contain
+// its tag and index of char (u32) in file. Node should contain the
+// index of the major token. Lexer could be reset back to the start
+// and calulate line and column of token or node. Minimize the node
+// struct, make separate arrays for stuff and keep indexes to them.
+type token struct {
+	tag    tokenTag
+	line   uint
+	column uint
+	data   string
+}
+
 type tokenTag uint
 
-const (
-	tokenError tokenTag = 0
+// To start iota from 0 later
+const tokenError tokenTag = 0
 
+const (
 	// Imagine ASCII chars here
 
 	// Keywords
@@ -38,13 +56,6 @@ const (
 
 	tokenEOF
 )
-
-type token struct {
-	tag    tokenTag
-	line   uint
-	column uint
-	data   string
-}
 
 var tokenPatterns = []struct {
 	tag       tokenTag
@@ -120,46 +131,24 @@ func (p *Parser) pushToken(t token) {
 }
 
 func (p *Parser) cacheToken() {
-	// TODO: This fails on empty file, fix!
-	if p.l.data == "" {
-		panic("attempted to cache empty input")
+	if p.l.doneLexing {
+		panic("already done lexing")
 	}
 
-blankLoop:
-	for {
-		if len(p.l.data) == 0 {
-			break blankLoop
-		}
+	p.skipBlanksAndComments()
 
-		switch p.l.data[0] {
-		case ' ':
-			p.l.column += 1
-
-		case '\t':
-			p.l.column += 1
-
-		case '\n':
-			p.l.column = 1
-			p.l.line += 1
-
-		default:
-			break blankLoop
-		}
-
-		p.l.data = p.l.data[1:]
-	}
-
-	matched := false
-
-	if p.l.data == "" {
+	if len(p.l.data) == 0 {
 		t := token{
 			tag:    tokenEOF,
 			line:   p.l.line,
 			column: p.l.column,
 		}
 		p.pushToken(t)
+		p.l.doneLexing = true
 		return
 	}
+
+	matched := false
 
 	for _, pattern := range tokenPatterns {
 		match := pattern.pattern.FindString(p.l.data)
@@ -194,6 +183,60 @@ blankLoop:
 			Msg:    "unknown syntax",
 		})
 	}
+}
+
+func (p *Parser) skipBlanksAndComments() {
+	// Regular expressions are not used here because we need to
+	// check for newlines.
+
+	const (
+		init = iota
+		comment
+		// 'goto endSkipping' instead of final state
+	)
+
+	state := init
+
+	for len(p.l.data) > 0 {
+		switch state {
+		case init:
+			switch p.l.data[0] {
+			case ' ':
+			case '\t':
+			case '\n':
+				// Stay in init
+			case ';':
+				state = comment
+			default:
+				goto endSkipping
+			}
+
+		case comment:
+			switch p.l.data[0] {
+			case '\n':
+				// To check for blanks after comment
+				state = init
+			default:
+				// Stay in comment
+			}
+
+		default:
+			panic("unknown state")
+		}
+
+		// state != final here, so we need to consume
+		// the char.
+
+		if p.l.data[0] == '\n' {
+			p.l.column = 1
+			p.l.line++
+		} else {
+			p.l.column++
+		}
+		p.l.data = p.l.data[1:]
+	}
+
+endSkipping:
 }
 
 func (p *Parser) peek(offset uint) token {
