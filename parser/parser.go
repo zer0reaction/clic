@@ -183,19 +183,24 @@ func (p *Parser) parseList() *ast.Node {
 
 			name, toDef := p.parseNameWithType()
 
-			typeNode := types.TypeNode{
-				Tag:       types.Definition,
-				DefinedAs: toDef,
+			if sym.ExistsAnywhere(name, sym.Type) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"type is already declared")
+			} else {
+				typeNode := types.TypeNode{
+					Tag:       types.Definition,
+					DefinedAs: toDef,
+				}
+				def := types.Register(typeNode)
+
+				id := sym.AddToBlock(name, sym.Type)
+
+				s := sym.Get(id)
+				s.Type.Id = def
+				sym.Set(id, s)
+
+				n.Id = id
 			}
-			def := types.Register(typeNode)
-
-			id := sym.AddToBlock(name, sym.Type)
-
-			s := sym.Get(id)
-			s.Type.Id = def
-			sym.Set(id, s)
-
-			n.Id = id
 
 		default:
 			panic("not implemented")
