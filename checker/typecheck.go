@@ -26,8 +26,8 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		checkNode(n.BinOp.Lval, r)
 		checkNode(n.BinOp.Rval, r)
 
-		lvalType := n.BinOp.Lval.GetType()
-		rvalType := n.BinOp.Rval.GetType()
+		lvalType := n.BinOp.Lval.GetTypeShallow()
+		rvalType := n.BinOp.Rval.GetTypeShallow()
 		voidType := types.GetBuiltin(types.Void)
 
 		lvalStr := lvalType.Stringify()
@@ -70,7 +70,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		mismatch := false
 		for i, arg := range n.FunCall.Args {
-			if arg.GetType() != fun.Params[i].Type {
+			if arg.GetTypeShallow() != fun.Params[i].Type {
 				mismatch = true
 				break
 			}
@@ -79,7 +79,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			got := ""
 			expected := ""
 			for _, arg := range n.FunCall.Args {
-				got += arg.GetType().Stringify() + " "
+				got += arg.GetTypeShallow().Stringify() + " "
 			}
 			for _, param := range fun.Params {
 				expected += param.Type.Stringify() + " "
@@ -93,7 +93,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	case ast.NodeIf:
 		checkNode(n.If.Exp, r)
 
-		expType := n.If.Exp.GetType()
+		expType := n.If.Exp.GetTypeShallow()
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.If.Exp.ReportHere(r, report.ReportNonfatal,
@@ -106,7 +106,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 	case ast.NodeWhile:
 		checkNode(n.While.Exp, r)
 
-		expType := n.While.Exp.GetType()
+		expType := n.While.Exp.GetTypeShallow()
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.While.Exp.ReportHere(r, report.ReportNonfatal,
@@ -125,7 +125,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		// convert between all of them. This code only checks
 		// for new and unsupported types.
 
-		from := n.Cast.What.GetType()
+		from := n.Cast.What.GetTypeDeep()
 
 		switch from {
 		// Do nothing

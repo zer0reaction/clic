@@ -135,7 +135,7 @@ func codegenNode(n *ast.Node) string {
 		// simply push the node's value on stack. This code
 		// only checks for new and unsupported types.
 
-		from := n.Cast.What.GetType()
+		from := n.Cast.What.GetTypeDeep()
 
 		switch from {
 		// Do nothing

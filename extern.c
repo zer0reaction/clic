@@ -16,3 +16,8 @@ void print_u64(uint64_t n)
 {
     printf("%lu\n", n);
 }
+
+void print_uint(unsigned int n)
+{
+    printf("%u\n", n);
+}

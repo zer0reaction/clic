@@ -48,6 +48,10 @@ func Register(node TypeNode) TypeId {
 	return id
 }
 
+func Get(id TypeId) TypeNode {
+	return table[id]
+}
+
 func GetBuiltin(tag TypeTag) TypeId {
 	id, ok := builtin[tag]
 	if !ok {

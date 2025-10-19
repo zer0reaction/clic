@@ -114,15 +114,16 @@ const (
 	BinOpGreat
 )
 
-func (n *Node) GetType() types.TypeId {
+// Does not recurse if type is a defenition
+func (n *Node) GetTypeShallow() types.TypeId {
 	switch n.Tag {
 	case NodeBinOp:
 		switch n.BinOp.Tag {
 		case BinOpAssign:
-			return n.BinOp.Lval.GetType()
+			return n.BinOp.Lval.GetTypeShallow()
 
 		case BinOpArith:
-			return n.BinOp.Rval.GetType()
+			return n.BinOp.Rval.GetTypeShallow()
 
 		case BinOpComp:
 			return types.GetBuiltin(types.Bool)
@@ -172,6 +173,19 @@ func (n *Node) GetType() types.TypeId {
 	default:
 		panic("not implemented")
 	}
+}
+
+// If the type is a defenition, recurses to get the actual type
+func (n *Node) GetTypeDeep() types.TypeId {
+	typeId := n.GetTypeShallow()
+	{
+		typeNode := types.Get(typeId)
+		for typeNode.Tag == types.Definition {
+			typeId = typeNode.DefinedAs
+			typeNode = types.Get(typeId)
+		}
+	}
+	return typeId
 }
 
 func (n *Node) ReportHere(r *report.Reporter, tag report.ReportTag, msg string) {

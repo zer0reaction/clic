@@ -126,7 +126,7 @@ func (p *Parser) parseList() *ast.Node {
 				id := sym.AddToBlock(name, sym.Variable)
 
 				s := sym.Get(id)
-				s.Variable.Type = rval.GetType()
+				s.Variable.Type = rval.GetTypeShallow()
 				sym.Set(id, s)
 
 				lval.Id = id
