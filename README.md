@@ -73,3 +73,11 @@ You can also infer the type:
 ```lisp
 (auto foo: (u64 1337))
 ```
+
+You can define custom types. They behave like a new type, not like an
+alias.
+
+```lisp
+(typedef uint: u64)
+(auto foo: (uint 1337))
+```
