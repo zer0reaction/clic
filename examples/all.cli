@@ -2,13 +2,15 @@
 (exfun print_u64 (n: u64))
 (exfun print_bool (n: bool))
 
-(let n: u64)
-(:= n (u64 10))
+(typedef uint: u64)
+
+(let n: uint)
+(:= n (uint 10))
 
 (
-    (auto i: (u64 0))
+    (auto i (u64 0))
 
-    (while (< i n) (
+    (while (< i (u64 n)) (
         (if (== (% i (u64 2)) (u64 0))
             (print_u64 i)
             (print_s64 -1))

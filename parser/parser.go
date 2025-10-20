@@ -105,8 +105,6 @@ func (p *Parser) parseList() *ast.Node {
 			ident := p.match(tokenIdent)
 			name := ident.data
 
-			p.match(tokenTag(':'))
-
 			// TODO: Check if the identifier is not a type
 			// or something
 			rval := p.parseItem()
