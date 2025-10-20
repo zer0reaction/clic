@@ -76,7 +76,7 @@ var tokenPatterns = []struct {
 	{tokenIdent, regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*`), true},
 }
 
-func (tag tokenTag) toString() string {
+func (tag tokenTag) stringify() string {
 	if uint(tag) <= 127 {
 		return fmt.Sprintf("'%c'", uint(tag))
 	}
@@ -251,7 +251,7 @@ func (p *Parser) match(tag tokenTag) token {
 
 	if token.tag != tag {
 		msg := fmt.Sprintf("expected %s, got %s",
-			tag.toString(), token.tag.toString())
+			tag.stringify(), token.tag.stringify())
 		p.r.Report(report.Form{
 			Tag:    report.ReportFatal,
 			Line:   token.line,

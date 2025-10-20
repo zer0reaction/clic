@@ -107,6 +107,8 @@ func (p *Parser) parseList() *ast.Node {
 
 			p.match(tokenTag(':'))
 
+			// TODO: Check if the identifier is not a type
+			// or something
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
@@ -240,8 +242,9 @@ func (p *Parser) parseList() *ast.Node {
 		n.Cast.What = p.parseItem()
 
 	default:
+		s := lookahead.tag.stringify()
 		n.ReportHere(p.r, report.ReportFatal,
-			"incorrect list head item")
+			fmt.Sprintf("unexpected list head item: %s", s))
 	}
 
 	p.match(tokenTag(')'))
@@ -305,8 +308,9 @@ func (p *Parser) parseItem() *ast.Node {
 		return p.parseList()
 
 	default:
+		s := lookahead.tag.stringify()
 		n.ReportHere(p.r, report.ReportFatal,
-			"incorrect list item")
+			fmt.Sprintf("unexpected list item: %s", s))
 	}
 
 	return &n
