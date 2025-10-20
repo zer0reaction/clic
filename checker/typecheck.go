@@ -45,7 +45,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 		if lvalType != rvalType {
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("operand type mismatch, got %s and %s",
+				fmt.Sprintf("operand type mismatch\n\tlval: %s\n\trval: %s",
 					lvalStr, rvalStr))
 		}
 
