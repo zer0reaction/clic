@@ -166,17 +166,25 @@ func (p *Parser) parseList() *ast.Node {
 			n.Tag = ast.NodeIf
 
 			n.If.Exp = p.parseItem()
+
+			sym.PushBlock()
 			n.If.IfBody = p.parseList()
+			sym.PopBlock()
 
 			if p.peek(0).tag != tokenTag(')') {
+				sym.PushBlock()
 				n.If.ElseBody = p.parseList()
+				sym.PopBlock()
 			}
 
 		case "while":
 			n.Tag = ast.NodeWhile
 
 			n.While.Exp = p.parseItem()
+
+			sym.PushBlock()
 			n.While.Body = p.parseList()
+			sym.PopBlock()
 
 		case "typedef":
 			n.Tag = ast.NodeTypedef
