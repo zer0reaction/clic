@@ -3,11 +3,11 @@
 package checker
 
 import (
+	"clic/ast"
+	"clic/report"
+	sym "clic/symbol"
+	"clic/types"
 	"fmt"
-	"lisp-go/ast"
-	"lisp-go/report"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
 )
 
 func TypeCheck(roots []*ast.Node, r *report.Reporter) {

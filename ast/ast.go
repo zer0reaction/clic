@@ -3,9 +3,9 @@
 package ast
 
 import (
-	"lisp-go/report"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
+	"clic/report"
+	sym "clic/symbol"
+	"clic/types"
 )
 
 type Node struct {

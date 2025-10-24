@@ -1,12 +1,12 @@
 package main
 
 import (
+	"clic/checker"
+	"clic/codegen"
+	"clic/parser"
+	"clic/report"
 	"flag"
 	"fmt"
-	"lisp-go/checker"
-	"lisp-go/codegen"
-	"lisp-go/parser"
-	"lisp-go/report"
 	"os"
 	"os/exec"
 	"strings"

@@ -4,8 +4,8 @@
 package parser
 
 import (
+	"clic/report"
 	"fmt"
-	"lisp-go/report"
 	"regexp"
 )
 

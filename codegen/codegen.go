@@ -3,10 +3,10 @@
 package codegen
 
 import (
+	"clic/ast"
+	sym "clic/symbol"
+	"clic/types"
 	"fmt"
-	"lisp-go/ast"
-	sym "lisp-go/symbol"
-	"lisp-go/types"
 )
 
 // Scratch registers:
