@@ -58,6 +58,13 @@ type Node struct {
 		Body *Node
 	}
 
+	For struct {
+		Init *Node
+		Cond *Node
+		Adv  *Node
+		Body *Node
+	}
+
 	Cast struct {
 		To   types.TypeId
 		What *Node
@@ -77,6 +84,7 @@ const (
 	NodeFunCall
 	NodeIf
 	NodeWhile
+	NodeFor
 	NodeCast
 	NodeTypedef
 	NodeEmpty

@@ -130,6 +130,9 @@ func codegenNode(n *ast.Node) string {
 	case ast.NodeWhile:
 		code += codegenWhile(n)
 
+	case ast.NodeFor:
+		code += codegenFor(n)
+
 	case ast.NodeCast:
 		// Right now there are only integer types, so we can
 		// simply push the node's value on stack. This code
@@ -360,12 +363,37 @@ func codegenWhile(n *ast.Node) string {
 	localCount += 1
 
 	code += "	/* While */\n"
+
 	code += fmt.Sprintf("%s:\n", start)
 	code += codegenNode(n.While.Exp)
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
 	code += codegenNode(n.While.Body)
+	code += fmt.Sprintf("	jmp	%s\n", start)
+	code += fmt.Sprintf("%s:\n", end)
+
+	return code
+}
+
+func codegenFor(n *ast.Node) string {
+	code := ""
+
+	start := fmt.Sprintf(".L%d", localCount)
+	localCount += 1
+	end := fmt.Sprintf(".L%d", localCount)
+	localCount += 1
+
+	code += "	/* For */\n"
+
+	code += codegenNode(n.For.Init)
+	code += fmt.Sprintf("%s:\n", start)
+	code += codegenNode(n.For.Cond)
+	code += "	popq	%rax\n"
+	code += "	cmpq	$0, %rax\n"
+	code += fmt.Sprintf("	jz	%s\n", end)
+	code += codegenNode(n.For.Body)
+	code += codegenNode(n.For.Adv)
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
 

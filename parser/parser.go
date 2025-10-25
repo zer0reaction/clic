@@ -186,6 +186,16 @@ func (p *Parser) parseList() *ast.Node {
 			n.While.Body = p.parseList()
 			sym.PopBlock()
 
+		case "for":
+			n.Tag = ast.NodeFor
+
+			sym.PushBlock()
+			n.For.Init = p.parseList()
+			n.For.Cond = p.parseItem()
+			n.For.Adv = p.parseList()
+			n.For.Body = p.parseList()
+			sym.PopBlock()
+
 		case "typedef":
 			n.Tag = ast.NodeTypedef
 

@@ -4,17 +4,16 @@
 
 (typedef uint: u64)
 
+(for (auto i 1) (<= i 3) (:= i (+ i 1)) (
+  (print_s64 (* i 10))
+))
+
 (let n: uint)
-(:= n (uint 10))
+(:= n (uint 1))
 
-(
-    (auto i (u64 0))
-
-    (while (< i (u64 n)) (
-        (if (== (% i (u64 2)) (u64 0))
-            (print_u64 i)
-            (print_s64 -1))
-
-        (:= i (+ i (u64 1)))
-    ))
-)
+(while (< n (uint 1000)) (
+  (:= n (* n (uint 2)))
+  (if (> n (uint 200))
+    (print_u64 (u64 n))
+    (print_s64 (* (s64 n) -1)))
+))

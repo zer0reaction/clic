@@ -97,7 +97,8 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.If.Exp.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("expected type %s", boolType.Stringify()))
+				fmt.Sprintf("expected type %s, got %s",
+					boolType.Stringify(), expType.Stringify()))
 		}
 
 		checkNode(n.If.IfBody, r)
@@ -105,15 +106,29 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 	case ast.NodeWhile:
 		checkNode(n.While.Exp, r)
+		checkNode(n.While.Body, r)
 
 		expType := n.While.Exp.GetTypeShallow()
 		boolType := types.GetBuiltin(types.Bool)
 		if expType != boolType {
 			n.While.Exp.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("expected type %s", boolType.Stringify()))
+				fmt.Sprintf("expected type %s, got %s",
+					boolType.Stringify(), expType.Stringify()))
 		}
 
-		checkNode(n.While.Body, r)
+	case ast.NodeFor:
+		checkNode(n.For.Init, r)
+		checkNode(n.For.Cond, r)
+		checkNode(n.For.Adv, r)
+		checkNode(n.For.Body, r)
+
+		condType := n.For.Cond.GetTypeShallow()
+		boolType := types.GetBuiltin(types.Bool)
+		if condType != boolType {
+			n.For.Cond.ReportHere(r, report.ReportNonfatal,
+				fmt.Sprintf("expected type %s, got %s",
+					boolType.Stringify(), condType.Stringify()))
+		}
 
 	case ast.NodeBlock:
 		for _, node := range n.Block.Stmts {
