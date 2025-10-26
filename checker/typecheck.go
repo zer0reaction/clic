@@ -157,11 +157,19 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			panic("not implemented")
 		}
 
+	case ast.NodeVariable:
+		voidType := types.GetBuiltin(types.Void)
+		varType := n.GetTypeDeep()
+
+		if n.Variable.IsDecl && (varType == voidType) {
+			n.ReportHere(r, report.ReportNonfatal,
+				fmt.Sprintf("variable of type %s", voidType.Stringify()))
+		}
+
 	// Do nothing
 	case ast.NodeInteger:
 	case ast.NodeBoolean:
-	case ast.NodeVariable:
-	case ast.NodeFunEx:
+	case ast.NodeFunEx: // TODO: add check for 'void' params
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
 

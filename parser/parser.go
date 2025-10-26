@@ -418,6 +418,9 @@ func (p *Parser) parseType() types.TypeId {
 	t := p.match(tokenType)
 
 	switch t.data {
+	case "void":
+		return types.GetBuiltin(types.Void)
+
 	case "s64":
 		return types.GetBuiltin(types.S64)
 
