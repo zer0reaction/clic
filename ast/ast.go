@@ -52,25 +52,22 @@ type Node struct {
 		Args []*Node
 	}
 
-	// TODO: Change body to slice (add 'else' keyword)
 	If struct {
-		Exp      *Node
-		IfBody   *Node
-		ElseBody *Node
+		Exp       *Node
+		IfStmts   []*Node
+		ElseStmts []*Node
 	}
 
-	// TODO: Change body to slice
 	While struct {
-		Exp  *Node
-		Body *Node
+		Exp   *Node
+		Stmts []*Node
 	}
 
-	// TODO: Change body to slice
 	For struct {
-		Init *Node
-		Cond *Node
-		Adv  *Node
-		Body *Node
+		Init  *Node
+		Cond  *Node
+		Adv   *Node
+		Stmts []*Node
 	}
 
 	Cast struct {

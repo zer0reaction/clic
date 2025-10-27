@@ -332,18 +332,24 @@ func codegenIf(n *ast.Node) string {
 	end := fmt.Sprintf(".L%d", localCount)
 	localCount += 1
 
-	if n.If.ElseBody == nil {
+	if len(n.If.ElseStmts) == 0 {
 		code += fmt.Sprintf("	je	%s\n", end)
-		code += codegenNode(n.If.IfBody)
+		for _, stmt := range n.If.IfStmts {
+			code += codegenNode(stmt)
+		}
 	} else {
 		elseStart := fmt.Sprintf(".L%d", localCount)
 		localCount += 1
 
 		code += fmt.Sprintf("	je	%s\n", elseStart)
-		code += codegenNode(n.If.IfBody)
+		for _, stmt := range n.If.IfStmts {
+			code += codegenNode(stmt)
+		}
 		code += fmt.Sprintf("	jmp	%s\n", end)
 		code += fmt.Sprintf("%s:\n", elseStart)
-		code += codegenNode(n.If.ElseBody)
+		for _, stmt := range n.If.ElseStmts {
+			code += codegenNode(stmt)
+		}
 	}
 
 	code += fmt.Sprintf("%s:\n", end)
@@ -366,7 +372,9 @@ func codegenWhile(n *ast.Node) string {
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
-	code += codegenNode(n.While.Body)
+	for _, stmt := range n.While.Stmts {
+		code += codegenNode(stmt)
+	}
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
 
@@ -389,7 +397,9 @@ func codegenFor(n *ast.Node) string {
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
-	code += codegenNode(n.For.Body)
+	for _, stmt := range n.For.Stmts {
+		code += codegenNode(stmt)
+	}
 	code += codegenNode(n.For.Adv)
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)

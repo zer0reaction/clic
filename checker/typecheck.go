@@ -101,12 +101,18 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 					boolType.Stringify(), expType.Stringify()))
 		}
 
-		checkNode(n.If.IfBody, r)
-		checkNode(n.If.ElseBody, r)
+		for _, stmt := range n.If.IfStmts {
+			checkNode(stmt, r)
+		}
+		for _, stmt := range n.If.ElseStmts {
+			checkNode(stmt, r)
+		}
 
 	case ast.NodeWhile:
 		checkNode(n.While.Exp, r)
-		checkNode(n.While.Body, r)
+		for _, stmt := range n.While.Stmts {
+			checkNode(stmt, r)
+		}
 
 		expType := n.While.Exp.GetTypeShallow()
 		boolType := types.GetBuiltin(types.Bool)
@@ -120,7 +126,9 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		checkNode(n.For.Init, r)
 		checkNode(n.For.Cond, r)
 		checkNode(n.For.Adv, r)
-		checkNode(n.For.Body, r)
+		for _, stmt := range n.For.Stmts {
+			checkNode(stmt, r)
+		}
 
 		condType := n.For.Cond.GetTypeShallow()
 		boolType := types.GetBuiltin(types.Bool)

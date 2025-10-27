@@ -60,7 +60,7 @@ var tokenPatterns = []struct {
 }{
 	// Order matters!
 
-	{tokenKeyword, regexp.MustCompile(`^(\blet\b|\bdefun\b|\bexfun\b|\bif\b|\bwhile\b|\btrue\b|\bfalse\b|\bauto\b|\btypedef\b|\bfor\b)`), true},
+	{tokenKeyword, regexp.MustCompile(`^(\blet\b|\bdefun\b|\bexfun\b|\bif\b|\belse\b|\bwhile\b|\btrue\b|\bfalse\b|\bauto\b|\btypedef\b|\bfor\b)`), true},
 	{tokenType, regexp.MustCompile(`^(\bvoid\b|\bs64\b|\bu64\b|\bbool\b|\bstruct\b)`), true},
 	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
 	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+|\*|/|%)`), true},

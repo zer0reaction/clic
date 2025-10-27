@@ -223,14 +223,22 @@ func (p *Parser) parseList() *ast.Node {
 			n.If.Exp = p.parseItem()
 
 			symbol.PushBlock()
-			n.If.IfBody = p.parseList()
+			n.If.IfStmts = p.collectLists()
 			symbol.PopBlock()
 
-			if p.peek(0).tag != tokenTag(')') {
-				symbol.PushBlock()
-				n.If.ElseBody = p.parseList()
-				symbol.PopBlock()
+			{
+				t := p.peek(0)
+				if t.tag == tokenKeyword && t.data == "else" {
+					p.match(tokenKeyword)
+					symbol.PushBlock()
+					n.If.ElseStmts = p.collectLists()
+					symbol.PopBlock()
+				}
 			}
+
+		case "else":
+			n.ReportHere(p.r, report.ReportFatal,
+				"unexpected keyword 'else'")
 
 		case "while":
 			n.Tag = ast.NodeWhile
@@ -238,7 +246,7 @@ func (p *Parser) parseList() *ast.Node {
 			n.While.Exp = p.parseItem()
 
 			symbol.PushBlock()
-			n.While.Body = p.parseList()
+			n.While.Stmts = p.collectLists()
 			symbol.PopBlock()
 
 		case "for":
@@ -248,7 +256,7 @@ func (p *Parser) parseList() *ast.Node {
 			n.For.Init = p.parseList()
 			n.For.Cond = p.parseItem()
 			n.For.Adv = p.parseList()
-			n.For.Body = p.parseList()
+			n.For.Stmts = p.collectLists()
 			symbol.PopBlock()
 
 		case "typedef":
@@ -525,7 +533,7 @@ func (p *Parser) collectItems() []*ast.Node {
 func (p *Parser) collectLists() []*ast.Node {
 	var lists []*ast.Node
 
-	for p.peek(0).tag != tokenTag(')') {
+	for p.peek(0).tag == tokenTag('(') {
 		lists = append(lists, p.parseList())
 	}
 
