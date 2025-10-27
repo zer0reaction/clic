@@ -10,10 +10,6 @@ import (
 )
 
 type lexer struct {
-	// This is done to prevent emmiting multiple EOFs. Set when
-	// EOF is emitted.
-	doneLexing bool
-
 	data   string
 	line   uint
 	column uint
@@ -131,12 +127,10 @@ func (p *Parser) pushToken(t token) {
 }
 
 func (p *Parser) cacheToken() {
-	if p.l.doneLexing {
-		panic("already done lexing")
-	}
-
 	p.skipBlanksAndComments()
 
+	// Multiple EOFs should be emmited when trying to peek beyond the
+	// end of file
 	if len(p.l.data) == 0 {
 		t := token{
 			tag:    tokenEOF,
@@ -144,7 +138,6 @@ func (p *Parser) cacheToken() {
 			column: p.l.column,
 		}
 		p.pushToken(t)
-		p.l.doneLexing = true
 		return
 	}
 
