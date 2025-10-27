@@ -4,7 +4,7 @@ package codegen
 
 import (
 	"clic/ast"
-	sym "clic/symbol"
+	"clic/symbol"
 	"clic/types"
 	"fmt"
 )
@@ -73,11 +73,11 @@ func codegenNode(n *ast.Node) string {
 	case ast.NodeVariable:
 		// TODO: Check the type tag
 
-		s := sym.Get(n.Id)
+		s := symbol.Get(n.Id)
 
 		if n.Variable.IsDecl {
 			s.Variable.Offset = stackOffset + varBytesize
-			sym.Set(n.Id, s)
+			symbol.Set(n.Id, s)
 			stackOffset += varBytesize
 		} else {
 			code += "	/* Variable */\n"
@@ -97,7 +97,7 @@ func codegenNode(n *ast.Node) string {
 		code += codegenBinOp(n)
 
 	case ast.NodeFunEx:
-		name := sym.Get(n.Id).Name
+		name := symbol.Get(n.Id).Name
 		externDecls += fmt.Sprintf(".extern %s\n", name)
 
 	case ast.NodeFunCall:
@@ -112,7 +112,7 @@ func codegenNode(n *ast.Node) string {
 			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[i])
 		}
 
-		name := sym.Get(n.Id).Name
+		name := symbol.Get(n.Id).Name
 		code += fmt.Sprintf("	call	%s\n", name)
 		code += "	pushq	%rax\n"
 
@@ -174,7 +174,7 @@ func codegenBinOp(n *ast.Node) string {
 
 	switch n.BinOp.Tag {
 	case ast.BinOpAssign:
-		v := sym.Get(n.BinOp.Lval.Id).Variable
+		v := symbol.Get(n.BinOp.Lval.Id).Variable
 		offset := v.Offset
 
 		code += rval

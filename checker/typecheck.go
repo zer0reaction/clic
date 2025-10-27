@@ -5,7 +5,7 @@ package checker
 import (
 	"clic/ast"
 	"clic/report"
-	sym "clic/symbol"
+	"clic/symbol"
 	"clic/types"
 	"fmt"
 )
@@ -61,7 +61,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			checkNode(node, r)
 		}
 
-		fun := sym.Get(n.Id).Function
+		fun := symbol.Get(n.Id).Function
 
 		if len(n.Function.Args) != len(fun.Params) {
 			n.ReportHere(r, report.ReportNonfatal,

@@ -5,7 +5,7 @@ package parser
 import (
 	"clic/ast"
 	"clic/report"
-	sym "clic/symbol"
+	"clic/symbol"
 	"clic/types"
 	"fmt"
 	"strconv"
@@ -65,12 +65,12 @@ func (p *Parser) parseList() *ast.Node {
 	case tokenTag('('):
 		n.Tag = ast.NodeBlock
 
-		sym.PushBlock()
+		symbol.PushBlock()
 
 		items := p.collectItems()
 		n.Block.Stmts = items
 
-		sym.PopBlock()
+		symbol.PopBlock()
 
 	case tokenKeyword:
 		switch p.consume().data {
@@ -80,15 +80,15 @@ func (p *Parser) parseList() *ast.Node {
 
 			name, type_ := p.parseNameWithType()
 
-			if sym.ExistsInBlock(name, sym.Variable) {
+			if symbol.ExistsInBlock(name, symbol.Variable) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
-				id := sym.AddToBlock(name, sym.Variable)
+				id := symbol.AddToBlock(name, symbol.Variable)
 
-				s := sym.Get(id)
+				s := symbol.Get(id)
 				s.Variable.Type = type_
-				sym.Set(id, s)
+				symbol.Set(id, s)
 
 				n.Id = id
 			}
@@ -110,7 +110,7 @@ func (p *Parser) parseList() *ast.Node {
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
-			if sym.ExistsInBlock(name, sym.Variable) {
+			if symbol.ExistsInBlock(name, symbol.Variable) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
@@ -123,11 +123,11 @@ func (p *Parser) parseList() *ast.Node {
 
 				// Type is determined in the parser,
 				// so it should be known by now.
-				id := sym.AddToBlock(name, sym.Variable)
+				id := symbol.AddToBlock(name, symbol.Variable)
 
-				s := sym.Get(id)
+				s := symbol.Get(id)
 				s.Variable.Type = rval.GetTypeShallow()
-				sym.Set(id, s)
+				symbol.Set(id, s)
 
 				lval.Id = id
 				n.BinOp.Lval = &lval
@@ -140,24 +140,24 @@ func (p *Parser) parseList() *ast.Node {
 
 			p.match(tokenTag('('))
 
-			params := []sym.TypedIdent{}
+			params := []symbol.TypedIdent{}
 			for p.peek(0).tag != tokenTag(')') {
-				param := sym.TypedIdent{}
+				param := symbol.TypedIdent{}
 				param.Name, param.Type = p.parseNameWithType()
 				params = append(params, param)
 			}
 
 			p.match(tokenTag(')'))
 
-			if sym.ExistsAnywhere(name, sym.Function) {
+			if symbol.ExistsAnywhere(name, symbol.Function) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
 			} else {
-				id := sym.AddToBlock(name, sym.Function)
+				id := symbol.AddToBlock(name, symbol.Function)
 
-				s := sym.Get(id)
+				s := symbol.Get(id)
 				s.Function.Params = params
-				sym.Set(id, s)
+				symbol.Set(id, s)
 
 				n.Id = id
 			}
@@ -167,14 +167,14 @@ func (p *Parser) parseList() *ast.Node {
 
 			n.If.Exp = p.parseItem()
 
-			sym.PushBlock()
+			symbol.PushBlock()
 			n.If.IfBody = p.parseList()
-			sym.PopBlock()
+			symbol.PopBlock()
 
 			if p.peek(0).tag != tokenTag(')') {
-				sym.PushBlock()
+				symbol.PushBlock()
 				n.If.ElseBody = p.parseList()
-				sym.PopBlock()
+				symbol.PopBlock()
 			}
 
 		case "while":
@@ -182,26 +182,26 @@ func (p *Parser) parseList() *ast.Node {
 
 			n.While.Exp = p.parseItem()
 
-			sym.PushBlock()
+			symbol.PushBlock()
 			n.While.Body = p.parseList()
-			sym.PopBlock()
+			symbol.PopBlock()
 
 		case "for":
 			n.Tag = ast.NodeFor
 
-			sym.PushBlock()
+			symbol.PushBlock()
 			n.For.Init = p.parseList()
 			n.For.Cond = p.parseItem()
 			n.For.Adv = p.parseList()
 			n.For.Body = p.parseList()
-			sym.PopBlock()
+			symbol.PopBlock()
 
 		case "typedef":
 			n.Tag = ast.NodeTypedef
 
 			name, toDef := p.parseNameWithType()
 
-			if sym.ExistsAnywhere(name, sym.Type) {
+			if symbol.ExistsAnywhere(name, symbol.Type) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"type is already declared")
 			} else {
@@ -211,11 +211,11 @@ func (p *Parser) parseList() *ast.Node {
 				}
 				def := types.Register(typeNode)
 
-				id := sym.AddToBlock(name, sym.Type)
+				id := symbol.AddToBlock(name, symbol.Type)
 
-				s := sym.Get(id)
+				s := symbol.Get(id)
 				s.Type.Id = def
-				sym.Set(id, s)
+				symbol.Set(id, s)
 
 				n.Id = id
 			}
@@ -228,17 +228,17 @@ func (p *Parser) parseList() *ast.Node {
 		name := p.peek(0).data
 
 		switch {
-		case sym.ExistsAnywhere(name, sym.Type):
+		case symbol.ExistsAnywhere(name, symbol.Type):
 			n.Tag = ast.NodeCast
 			n.Cast.To = p.parseType()
 			n.Cast.What = p.parseItem()
 
-		case sym.ExistsAnywhere(name, sym.Function):
+		case symbol.ExistsAnywhere(name, symbol.Function):
 			p.match(tokenIdent)
 			n.Tag = ast.NodeFunCall
 
-			id := sym.LookupAnywhere(name, sym.Function)
-			if id == sym.IdNone {
+			id := symbol.LookupAnywhere(name, symbol.Function)
+			if id == symbol.IdNone {
 				panic("unreachable")
 			}
 			n.Id = id
@@ -299,8 +299,8 @@ func (p *Parser) parseItem() *ast.Node {
 
 		n.Tag = ast.NodeVariable
 
-		id := sym.LookupAnywhere(t.data, sym.Variable)
-		if id == sym.IdNone {
+		id := symbol.LookupAnywhere(t.data, symbol.Variable)
+		if id == symbol.IdNone {
 			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable does not exist")
 		}
@@ -396,11 +396,11 @@ func (p *Parser) parseType() types.TypeId {
 		t := p.match(tokenIdent)
 
 		name := t.data
-		symId := sym.LookupAnywhere(name, sym.Type)
+		symId := symbol.LookupAnywhere(name, symbol.Type)
 
 		typeId := types.IdNone
 
-		if symId == sym.IdNone {
+		if symId == symbol.IdNone {
 			p.r.Report(report.Form{
 				Tag:    report.ReportNonfatal,
 				Line:   t.line,
@@ -409,7 +409,7 @@ func (p *Parser) parseType() types.TypeId {
 			})
 			// Returning IdNone, scary!
 		} else {
-			typeId = sym.Get(symId).Type.Id
+			typeId = symbol.Get(symId).Type.Id
 		}
 
 		return typeId

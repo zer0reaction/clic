@@ -4,13 +4,13 @@ package ast
 
 import (
 	"clic/report"
-	sym "clic/symbol"
+	"clic/symbol"
 	"clic/types"
 )
 
 type Node struct {
 	Tag    NodeTag
-	Id     sym.Id
+	Id     symbol.Id
 	Line   uint
 	Column uint
 
@@ -159,7 +159,7 @@ func (n *Node) GetTypeShallow() types.TypeId {
 		return types.GetBuiltin(types.Void)
 
 	case NodeVariable:
-		v := sym.Get(n.Id).Variable
+		v := symbol.Get(n.Id).Variable
 		return v.Type
 
 	case NodeFunEx:
