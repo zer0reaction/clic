@@ -57,19 +57,19 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		}
 
 	case ast.NodeFunCall:
-		for _, node := range n.FunCall.Args {
+		for _, node := range n.Function.Args {
 			checkNode(node, r)
 		}
 
 		fun := sym.Get(n.Id).Function
 
-		if len(n.FunCall.Args) != len(fun.Params) {
+		if len(n.Function.Args) != len(fun.Params) {
 			n.ReportHere(r, report.ReportNonfatal,
-				fmt.Sprintf("expected %d arguments, got %d", len(fun.Params), len(n.FunCall.Args)))
+				fmt.Sprintf("expected %d arguments, got %d", len(fun.Params), len(n.Function.Args)))
 		}
 
 		mismatch := false
-		for i, arg := range n.FunCall.Args {
+		for i, arg := range n.Function.Args {
 			if arg.GetTypeShallow() != fun.Params[i].Type {
 				mismatch = true
 				break
@@ -78,7 +78,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		if mismatch {
 			got := ""
 			expected := ""
-			for _, arg := range n.FunCall.Args {
+			for _, arg := range n.Function.Args {
 				got += arg.GetTypeShallow().Stringify() + " "
 			}
 			for _, param := range fun.Params {

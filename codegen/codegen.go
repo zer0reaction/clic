@@ -103,11 +103,11 @@ func codegenNode(n *ast.Node) string {
 	case ast.NodeFunCall:
 		code += "	/* FunCall */\n"
 
-		if len(n.FunCall.Args) >= len(argRegisters) {
+		if len(n.Function.Args) >= len(argRegisters) {
 			panic("arguments on stack are not supported yet")
 		}
 
-		for i, node := range n.FunCall.Args {
+		for i, node := range n.Function.Args {
 			code += codegenNode(node)
 			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[i])
 		}

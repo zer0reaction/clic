@@ -243,7 +243,7 @@ func (p *Parser) parseList() *ast.Node {
 			}
 			n.Id = id
 
-			n.FunCall.Args = p.collectItems()
+			n.Function.Args = p.collectItems()
 
 		default:
 			n.ReportHere(p.r,

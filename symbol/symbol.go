@@ -6,10 +6,10 @@ import (
 	"clic/types"
 )
 
-type SymbolId uint
+type Id uint
 
 const (
-	IdNone SymbolId = 0
+	IdNone Id = 0
 )
 
 type SymbolTag uint
@@ -51,19 +51,19 @@ type symbol struct {
 
 type table struct {
 	prev *table
-	data map[string]SymbolId
+	data map[string]Id
 }
 
 var current = &table{
 	prev: nil,
-	data: make(map[string]SymbolId),
+	data: make(map[string]Id),
 }
-var storage = make(map[SymbolId]symbol)
+var storage = make(map[Id]symbol)
 
 func PushBlock() {
 	current = &table{
 		prev: current,
-		data: make(map[string]SymbolId),
+		data: make(map[string]Id),
 	}
 }
 
@@ -74,7 +74,7 @@ func PopBlock() {
 	current = current.prev
 }
 
-func AddToBlock(name string, tag SymbolTag) SymbolId {
+func AddToBlock(name string, tag SymbolTag) Id {
 	_, ok := current.data[name]
 	if ok {
 		panic("symbol already exists in the current block")
@@ -84,7 +84,7 @@ func AddToBlock(name string, tag SymbolTag) SymbolId {
 		Name: name,
 		Tag:  tag,
 	}
-	id := SymbolId(len(storage) + 1)
+	id := Id(len(storage) + 1)
 
 	storage[id] = s
 	current.data[name] = id
@@ -92,7 +92,7 @@ func AddToBlock(name string, tag SymbolTag) SymbolId {
 	return id
 }
 
-func Get(id SymbolId) symbol {
+func Get(id Id) symbol {
 	s, ok := storage[id]
 
 	if !ok {
@@ -102,7 +102,7 @@ func Get(id SymbolId) symbol {
 	return s
 }
 
-func Set(id SymbolId, new symbol) {
+func Set(id Id, new symbol) {
 	_, ok := storage[id]
 
 	if !ok {
@@ -138,7 +138,7 @@ func ExistsInBlock(name string, tag SymbolTag) bool {
 	return (storage[id].Tag == tag)
 }
 
-func LookupAnywhere(name string, tag SymbolTag) SymbolId {
+func LookupAnywhere(name string, tag SymbolTag) Id {
 	ptr := current
 
 	for ptr != nil {
@@ -162,7 +162,7 @@ func LookupAnywhere(name string, tag SymbolTag) SymbolId {
 	return IdNone
 }
 
-func LookupInBlock(name string, tag SymbolTag) SymbolId {
+func LookupInBlock(name string, tag SymbolTag) Id {
 	id, ok := current.data[name]
 	if !ok {
 		return IdNone

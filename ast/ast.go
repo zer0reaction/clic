@@ -10,7 +10,7 @@ import (
 
 type Node struct {
 	Tag    NodeTag
-	Id     sym.SymbolId
+	Id     sym.Id
 	Line   uint
 	Column uint
 
@@ -43,7 +43,7 @@ type Node struct {
 		Stmts []*Node
 	}
 
-	FunCall struct {
+	Function struct {
 		Args []*Node
 	}
 
