@@ -44,20 +44,28 @@ type Node struct {
 	}
 
 	Function struct {
+		// Function definiton
+		Params []symbol.Id
+		Stmts  []*Node
+
+		// Function call
 		Args []*Node
 	}
 
+	// TODO: Change body to slice (add 'else' keyword)
 	If struct {
 		Exp      *Node
 		IfBody   *Node
 		ElseBody *Node
 	}
 
+	// TODO: Change body to slice
 	While struct {
 		Exp  *Node
 		Body *Node
 	}
 
+	// TODO: Change body to slice
 	For struct {
 		Init *Node
 		Cond *Node
@@ -66,7 +74,7 @@ type Node struct {
 	}
 
 	Cast struct {
-		To   types.TypeId
+		To   types.Id
 		What *Node
 	}
 }
@@ -81,6 +89,7 @@ const (
 	NodeBlock
 	NodeVariable
 	NodeFunEx
+	NodeFunDef
 	NodeFunCall
 	NodeIf
 	NodeWhile
@@ -123,7 +132,7 @@ const (
 )
 
 // Does not recurse if type is a defenition
-func (n *Node) GetTypeShallow() types.TypeId {
+func (n *Node) GetTypeShallow() types.Id {
 	switch n.Tag {
 	case NodeBinOp:
 		switch n.BinOp.Tag {
@@ -184,7 +193,7 @@ func (n *Node) GetTypeShallow() types.TypeId {
 }
 
 // If the type is a defenition, recurses to get the actual type
-func (n *Node) GetTypeDeep() types.TypeId {
+func (n *Node) GetTypeDeep() types.Id {
 	typeId := n.GetTypeShallow()
 	{
 		typeNode := types.Get(typeId)

@@ -12,9 +12,6 @@ import (
 // Scratch registers:
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
 
-// Argument registers:
-// rdi, rsi, rdx, rcx, r8, r9
-
 var argRegisters = [...]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 
 const varBytesize uint = 8

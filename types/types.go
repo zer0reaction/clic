@@ -2,22 +2,22 @@
 
 package types
 
-type TypeId int
+type Id int
 
-const IdNone TypeId = -1
+const IdNone Id = -1
 
 type TypeNode struct {
 	Tag TypeTag
 
 	// Type defenition
-	DefinedAs TypeId
+	DefinedAs Id
 
 	// Struct & union
 	Fields []Field
 }
 
 type Field struct {
-	Type TypeId
+	Type Id
 	Name string // Empty string means anonymous
 }
 
@@ -40,19 +40,19 @@ const (
 )
 
 var table = []TypeNode{}
-var builtin = map[TypeTag]TypeId{}
+var builtin = map[TypeTag]Id{}
 
-func Register(node TypeNode) TypeId {
-	id := TypeId(len(table))
+func Register(node TypeNode) Id {
+	id := Id(len(table))
 	table = append(table, node)
 	return id
 }
 
-func Get(id TypeId) TypeNode {
+func Get(id Id) TypeNode {
 	return table[id]
 }
 
-func GetBuiltin(tag TypeTag) TypeId {
+func GetBuiltin(tag TypeTag) Id {
 	id, ok := builtin[tag]
 	if !ok {
 		id = Register(TypeNode{Tag: tag})
@@ -61,7 +61,7 @@ func GetBuiltin(tag TypeTag) TypeId {
 	return id
 }
 
-func (id TypeId) Stringify() string {
+func (id Id) Stringify() string {
 	// Should not break on builtin types. We register the type
 	// when we get an id.
 	node := table[id]

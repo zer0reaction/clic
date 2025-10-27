@@ -22,7 +22,7 @@ const (
 )
 
 type sVariable struct {
-	Type   types.TypeId
+	Type   types.Id
 	Offset uint // subtracted from RBP
 }
 
@@ -31,13 +31,13 @@ type sFunction struct {
 }
 
 type sType struct {
-	Id types.TypeId
+	Id types.Id
 }
 
 // Has 'Name' because it is not stored in the symbol table
 type TypedIdent struct {
 	Name string
-	Type types.TypeId
+	Type types.Id
 }
 
 type symbol struct {

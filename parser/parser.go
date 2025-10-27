@@ -67,8 +67,8 @@ func (p *Parser) parseList() *ast.Node {
 
 		symbol.PushBlock()
 
-		items := p.collectItems()
-		n.Block.Stmts = items
+		stmts := p.collectLists()
+		n.Block.Stmts = stmts
 
 		symbol.PopBlock()
 
@@ -138,15 +138,14 @@ func (p *Parser) parseList() *ast.Node {
 
 			name := p.match(tokenIdent).data
 
-			p.match(tokenTag('('))
-
 			params := []symbol.TypedIdent{}
+
+			p.match(tokenTag('('))
 			for p.peek(0).tag != tokenTag(')') {
 				param := symbol.TypedIdent{}
 				param.Name, param.Type = p.parseNameWithType()
 				params = append(params, param)
 			}
-
 			p.match(tokenTag(')'))
 
 			if symbol.ExistsAnywhere(name, symbol.Function) {
@@ -161,6 +160,62 @@ func (p *Parser) parseList() *ast.Node {
 
 				n.Id = id
 			}
+
+		case "defun":
+			n.Tag = ast.NodeFunDef
+
+			funName := p.match(tokenIdent).data
+
+			symbol.PushBlock()
+
+			// Adding parameters as local variables, so they can be
+			// seen in the block. Keeping their ids so codegen can
+			// assign offsets. Also adding parameters to the symbol
+			// table so they can be seen in a call.
+
+			params := []symbol.TypedIdent{}
+
+			p.match(tokenTag('('))
+			for p.peek(0).tag != tokenTag(')') {
+				paramName, type_ := p.parseNameWithType()
+
+				params = append(params, symbol.TypedIdent{
+					Name: paramName,
+					Type: type_,
+				})
+
+				if symbol.ExistsInBlock(paramName, symbol.Variable) {
+					n.ReportHere(p.r, report.ReportNonfatal,
+						"duplicate parameter names")
+				} else {
+					id := symbol.AddToBlock(paramName, symbol.Variable)
+
+					s := symbol.Get(id)
+					s.Variable.Type = type_
+					symbol.Set(id, s)
+
+					n.Function.Params = append(n.Function.Params, id)
+				}
+			}
+			p.match(tokenTag(')'))
+
+			if symbol.ExistsAnywhere(funName, symbol.Function) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"function is already declared")
+			} else {
+				id := symbol.AddToBlock(funName, symbol.Function)
+
+				s := symbol.Get(id)
+				s.Function.Params = params
+				symbol.Set(id, s)
+
+				n.Id = id
+			}
+
+			// n.Function.Type = p.parseType()
+			n.Function.Stmts = p.collectLists()
+
+			symbol.PopBlock()
 
 		case "if":
 			n.Tag = ast.NodeIf
@@ -391,7 +446,7 @@ func (p *Parser) parseBinOp(n *ast.Node) {
 	n.BinOp.Rval = p.parseItem()
 }
 
-func (p *Parser) parseType() types.TypeId {
+func (p *Parser) parseType() types.Id {
 	if p.peek(0).tag == tokenIdent {
 		t := p.match(tokenIdent)
 
@@ -450,7 +505,7 @@ func (p *Parser) parseType() types.TypeId {
 	}
 }
 
-func (p *Parser) parseNameWithType() (string, types.TypeId) {
+func (p *Parser) parseNameWithType() (string, types.Id) {
 	name := p.match(tokenIdent).data
 	p.match(tokenTag(':'))
 	type_ := p.parseType()
@@ -460,15 +515,19 @@ func (p *Parser) parseNameWithType() (string, types.TypeId) {
 func (p *Parser) collectItems() []*ast.Node {
 	var items []*ast.Node
 
-	for {
-		lookahead := p.peek(0)
-		if lookahead.tag == tokenTag(')') {
-			break
-		}
-
-		item := p.parseItem()
-		items = append(items, item)
+	for p.peek(0).tag != tokenTag(')') {
+		items = append(items, p.parseItem())
 	}
 
 	return items
+}
+
+func (p *Parser) collectLists() []*ast.Node {
+	var lists []*ast.Node
+
+	for p.peek(0).tag != tokenTag(')') {
+		lists = append(lists, p.parseList())
+	}
+
+	return lists
 }

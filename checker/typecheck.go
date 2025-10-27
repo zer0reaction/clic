@@ -166,11 +166,17 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 				fmt.Sprintf("variable of type %s", voidType.Stringify()))
 		}
 
+	case ast.NodeFunDef:
+		// TODO: Add check for void
+		for _, stmt := range n.Function.Stmts {
+			checkNode(stmt, r)
+		}
+
 	// Do nothing
 	case ast.NodeInteger:
 	case ast.NodeBoolean:
-	case ast.NodeFunEx: // TODO: add check for 'void' params
-	case ast.NodeTypedef:
+	case ast.NodeFunEx: // TODO: Add check for 'void' params
+	case ast.NodeTypedef: // TODO: Add check for 'void'
 	case ast.NodeEmpty:
 
 	default:
