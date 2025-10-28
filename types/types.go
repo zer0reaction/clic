@@ -7,7 +7,9 @@ type Id int
 const IdNone Id = -1
 
 type TypeNode struct {
-	Tag TypeTag
+	Tag   tag
+	Size  uint
+	Align uint
 
 	// Type defenition
 	DefinedAs Id
@@ -21,10 +23,10 @@ type Field struct {
 	Name string // Empty string means anonymous
 }
 
-type TypeTag uint
+type tag uint
 
 const (
-	typeTagError TypeTag = iota
+	typeTagError tag = iota
 
 	// Base types (defined here for simplicity)
 	Void
@@ -40,7 +42,14 @@ const (
 )
 
 var table = []TypeNode{}
-var builtin = map[TypeTag]Id{}
+var builtin = map[tag]Id{}
+
+func init() {
+	registerBuiltin(Void, 0)
+	registerBuiltin(S64, 8)
+	registerBuiltin(U64, 8)
+	registerBuiltin(Bool, 1)
+}
 
 func Register(node TypeNode) Id {
 	id := Id(len(table))
@@ -48,15 +57,32 @@ func Register(node TypeNode) Id {
 	return id
 }
 
+func registerBuiltin(tag tag, size uint) Id {
+	_, ok := builtin[tag]
+	if ok {
+		panic("tried to register builtin type twice")
+	}
+
+	id := Id(len(table))
+	table = append(table, TypeNode{
+		Tag:   tag,
+		Size:  size,
+		Align: size,
+	})
+	builtin[tag] = id
+	return id
+}
+
 func Get(id Id) TypeNode {
 	return table[id]
 }
 
-func GetBuiltin(tag TypeTag) Id {
+func GetBuiltin(tag tag) Id {
 	id, ok := builtin[tag]
 	if !ok {
-		id = Register(TypeNode{Tag: tag})
-		builtin[tag] = id
+		panic("builtin type not registered")
+		// id = Register(TypeNode{Tag: tag})
+		// builtin[tag] = id
 	}
 	return id
 }

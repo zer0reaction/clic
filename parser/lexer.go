@@ -42,7 +42,7 @@ const (
 	// Imagine ASCII chars here
 
 	// Keywords
-	tokenKeyword = (128 + iota)
+	tokenKeyword tokenTag = (128 + iota)
 	tokenBinOp
 	tokenType
 

@@ -1,5 +1,3 @@
-// This file contains a symbol table implementation.
-
 package symbol
 
 import (
@@ -12,10 +10,10 @@ const (
 	IdNone Id = 0
 )
 
-type SymbolTag uint
+type tag uint
 
 const (
-	symbolError SymbolTag = iota
+	symbolError tag = iota
 	Variable
 	Function
 	Type
@@ -41,7 +39,7 @@ type TypedIdent struct {
 }
 
 type symbol struct {
-	Tag  SymbolTag
+	Tag  tag
 	Name string
 
 	Variable sVariable
@@ -74,7 +72,7 @@ func PopBlock() {
 	current = current.prev
 }
 
-func AddToBlock(name string, tag SymbolTag) Id {
+func AddToBlock(name string, tag tag) Id {
 	_, ok := current.data[name]
 	if ok {
 		panic("symbol already exists in the current block")
@@ -112,7 +110,7 @@ func Set(id Id, new symbol) {
 	storage[id] = new
 }
 
-func ExistsAnywhere(name string, tag SymbolTag) bool {
+func ExistsAnywhere(name string, tag tag) bool {
 	ptr := current
 
 	for ptr != nil {
@@ -128,7 +126,7 @@ func ExistsAnywhere(name string, tag SymbolTag) bool {
 	return false
 }
 
-func ExistsInBlock(name string, tag SymbolTag) bool {
+func ExistsInBlock(name string, tag tag) bool {
 	id, ok := current.data[name]
 
 	if !ok {
@@ -138,7 +136,7 @@ func ExistsInBlock(name string, tag SymbolTag) bool {
 	return (storage[id].Tag == tag)
 }
 
-func LookupAnywhere(name string, tag SymbolTag) Id {
+func LookupAnywhere(name string, tag tag) Id {
 	ptr := current
 
 	for ptr != nil {
@@ -162,7 +160,7 @@ func LookupAnywhere(name string, tag SymbolTag) Id {
 	return IdNone
 }
 
-func LookupInBlock(name string, tag SymbolTag) Id {
+func LookupInBlock(name string, tag tag) Id {
 	id, ok := current.data[name]
 	if !ok {
 		return IdNone

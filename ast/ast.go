@@ -9,7 +9,7 @@ import (
 )
 
 type Node struct {
-	Tag    NodeTag
+	Tag    tag
 	Id     symbol.Id
 	Line   uint
 	Column uint
@@ -76,10 +76,10 @@ type Node struct {
 	}
 }
 
-type NodeTag uint
+type tag uint
 
 const (
-	nodeError NodeTag = iota
+	nodeError tag = iota
 	NodeBinOp
 	NodeInteger
 	NodeBoolean
