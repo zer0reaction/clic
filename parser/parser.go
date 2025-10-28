@@ -173,6 +173,9 @@ func (p *Parser) parseList() *ast.Node {
 			// assign offsets. Also adding parameters to the symbol
 			// table so they can be seen in a call.
 
+			// TODO: Why are parameters TypedIdent in the symbol
+			// table?
+
 			params := []symbol.TypedIdent{}
 
 			p.match(tokenTag('('))
@@ -213,7 +216,15 @@ func (p *Parser) parseList() *ast.Node {
 			}
 
 			// n.Function.Type = p.parseType()
-			n.Function.Stmts = p.collectLists()
+
+			for p.peek(0).tag == tokenTag('(') {
+				stmt := p.parseList()
+				if stmt.Tag == ast.NodeFunDef {
+					stmt.ReportHere(p.r, report.ReportNonfatal,
+						"nested functions are not allowed")
+				}
+				n.Function.Stmts = append(n.Function.Stmts, stmt)
+			}
 
 			symbol.PopBlock()
 
@@ -284,6 +295,7 @@ func (p *Parser) parseList() *ast.Node {
 			}
 
 		default:
+			// TODO: Throw fatal on unrecognized keyword
 			panic("not implemented")
 		}
 
@@ -379,6 +391,7 @@ func (p *Parser) parseItem() *ast.Node {
 			n.Tag = ast.NodeBoolean
 			n.Boolean.Value = false
 
+		// TODO: Throw fatal on unrecognized keyword
 		default:
 			panic("not implemented")
 		}
