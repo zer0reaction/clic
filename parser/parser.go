@@ -67,8 +67,9 @@ func (p *Parser) parseList() *ast.Node {
 
 		symbol.PushBlock()
 
-		stmts := p.collectLists()
-		n.Block.Stmts = stmts
+		for p.peek(0).tag == tokenTag('(') {
+			n.Block.Stmts = append(n.Block.Stmts, p.parseList())
+		}
 
 		symbol.PopBlock()
 
@@ -233,7 +234,9 @@ func (p *Parser) parseList() *ast.Node {
 			n.If.Exp = p.parseItem()
 
 			symbol.PushBlock()
-			n.If.IfStmts = p.collectLists()
+			for p.peek(0).tag == tokenTag('(') {
+				n.If.IfStmts = append(n.If.IfStmts, p.parseList())
+			}
 			symbol.PopBlock()
 
 			{
@@ -241,7 +244,9 @@ func (p *Parser) parseList() *ast.Node {
 				if t.tag == tokenKeyword && t.data == "else" {
 					p.match(tokenKeyword)
 					symbol.PushBlock()
-					n.If.ElseStmts = p.collectLists()
+					for p.peek(0).tag == tokenTag('(') {
+						n.If.ElseStmts = append(n.If.ElseStmts, p.parseList())
+					}
 					symbol.PopBlock()
 				}
 			}
@@ -256,7 +261,9 @@ func (p *Parser) parseList() *ast.Node {
 			n.While.Exp = p.parseItem()
 
 			symbol.PushBlock()
-			n.While.Stmts = p.collectLists()
+			for p.peek(0).tag == tokenTag('(') {
+				n.While.Stmts = append(n.While.Stmts, p.parseList())
+			}
 			symbol.PopBlock()
 
 		case "for":
@@ -266,7 +273,9 @@ func (p *Parser) parseList() *ast.Node {
 			n.For.Init = p.parseList()
 			n.For.Cond = p.parseItem()
 			n.For.Adv = p.parseList()
-			n.For.Stmts = p.collectLists()
+			for p.peek(0).tag == tokenTag('(') {
+				n.For.Stmts = append(n.For.Stmts, p.parseList())
+			}
 			symbol.PopBlock()
 
 		case "typedef":
@@ -321,7 +330,9 @@ func (p *Parser) parseList() *ast.Node {
 			}
 			n.Id = id
 
-			n.Function.Args = p.collectItems()
+			for p.peek(0).tag != tokenTag(')') {
+				n.Function.Args = append(n.Function.Args, p.parseItem())
+			}
 
 		default:
 			n.ReportHere(p.r,
@@ -534,24 +545,4 @@ func (p *Parser) parseNameWithType() (string, types.Id) {
 	p.match(tokenTag(':'))
 	type_ := p.parseType()
 	return name, type_
-}
-
-func (p *Parser) collectItems() []*ast.Node {
-	var items []*ast.Node
-
-	for p.peek(0).tag != tokenTag(')') {
-		items = append(items, p.parseItem())
-	}
-
-	return items
-}
-
-func (p *Parser) collectLists() []*ast.Node {
-	var lists []*ast.Node
-
-	for p.peek(0).tag == tokenTag('(') {
-		lists = append(lists, p.parseList())
-	}
-
-	return lists
 }
