@@ -1,5 +1,3 @@
-// This file contains the main parsing functions.
-
 package parser
 
 import (
@@ -76,19 +74,22 @@ func (p *Parser) parseList() *ast.Node {
 	case tokenKeyword:
 		switch p.consume().data {
 		case "let":
-			n.Tag = ast.NodeVariable
-			n.Variable.IsDecl = true
+			n.Tag = ast.NodeVarDecl
+
+			if symbol.IsScopeGlobal() {
+				panic("not implemented")
+			}
 
 			name, type_ := p.parseNameWithType()
 
-			if symbol.ExistsInBlock(name, symbol.Variable) {
+			if symbol.ExistsInBlock(name, symbol.LocVar) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
-				id := symbol.AddToBlock(name, symbol.Variable)
+				id := symbol.AddToBlock(name, symbol.LocVar)
 
 				s := symbol.Get(id)
-				s.Variable.Type = type_
+				s.LocVar.Type = type_
 				symbol.Set(id, s)
 
 				n.Id = id
@@ -111,23 +112,26 @@ func (p *Parser) parseList() *ast.Node {
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
-			if symbol.ExistsInBlock(name, symbol.Variable) {
+			if symbol.IsScopeGlobal() {
+				panic("not impemented")
+			}
+
+			if symbol.ExistsInBlock(name, symbol.LocVar) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"variable is already declared")
 			} else {
 				lval := ast.Node{
-					Tag:    ast.NodeVariable,
+					Tag:    ast.NodeVarDecl,
 					Line:   ident.line,
 					Column: ident.column,
 				}
-				lval.Variable.IsDecl = true
 
 				// Type is determined in the parser,
 				// so it should be known by now.
-				id := symbol.AddToBlock(name, symbol.Variable)
+				id := symbol.AddToBlock(name, symbol.LocVar)
 
 				s := symbol.Get(id)
-				s.Variable.Type = rval.GetTypeShallow()
+				s.LocVar.Type = rval.GetTypeShallow()
 				symbol.Set(id, s)
 
 				lval.Id = id
@@ -196,14 +200,14 @@ func (p *Parser) parseList() *ast.Node {
 					Type: type_,
 				})
 
-				if symbol.ExistsInBlock(paramName, symbol.Variable) {
+				if symbol.ExistsInBlock(paramName, symbol.LocVar) {
 					n.ReportHere(p.r, report.ReportNonfatal,
 						"duplicate parameter names")
 				} else {
-					id := symbol.AddToBlock(paramName, symbol.Variable)
+					id := symbol.AddToBlock(paramName, symbol.LocVar)
 
 					s := symbol.Get(id)
-					s.Variable.Type = type_
+					s.LocVar.Type = type_
 					symbol.Set(id, s)
 
 					n.Function.Params = append(n.Function.Params, id)
@@ -386,9 +390,11 @@ func (p *Parser) parseItem() *ast.Node {
 	case tokenIdent:
 		t := p.consume()
 
-		n.Tag = ast.NodeVariable
+		n.Tag = ast.NodeLocVar
 
-		id := symbol.LookupAnywhere(t.data, symbol.Variable)
+		// TODO: Add global variables
+
+		id := symbol.LookupAnywhere(t.data, symbol.LocVar)
 		if id == symbol.IdNone {
 			n.ReportHere(p.r, report.ReportNonfatal,
 				"variable does not exist")

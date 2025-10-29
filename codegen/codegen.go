@@ -57,13 +57,11 @@ func genNode(n *ast.Node) string {
 			code += genNode(node)
 		}
 
-	case ast.NodeVariable:
-		if !n.Variable.IsDecl {
-			sym := symbol.Get(n.Id)
-			offset := sym.Variable.Offset
-			code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
-			code += "	pushq	%rax\n"
-		}
+	case ast.NodeLocVar:
+		sym := symbol.Get(n.Id)
+		offset := sym.LocVar.Offset
+		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
+		code += "	pushq	%rax\n"
 
 	case ast.NodeInteger:
 		if n.Integer.Signed {
@@ -137,6 +135,7 @@ func genNode(n *ast.Node) string {
 	// Do nothing
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
+	case ast.NodeVarDecl:
 
 	default:
 		panic("not implemented")
@@ -153,12 +152,16 @@ func genBinOp(n *ast.Node) string {
 
 	switch n.BinOp.Tag {
 	case ast.BinOpAssign:
-		v := symbol.Get(n.BinOp.Lval.Id).Variable
-		offset := v.Offset
+		sym := symbol.Get(n.BinOp.Lval.Id)
 
-		code += rval
-		code += "	popq	%rax\n"
-		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
+		if sym.Tag == symbol.LocVar {
+			offset := sym.LocVar.Offset
+			code += rval
+			code += "	popq	%rax\n"
+			code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
+		} else {
+			panic("not implemented")
+		}
 
 	case ast.BinOpArith:
 		switch n.BinOp.ArithTag {
@@ -379,12 +382,12 @@ func setVarOffsets(n *ast.Node, reserv uint) uint {
 			reserv = setVarOffsets(stmt, reserv)
 		}
 
-	case ast.NodeVariable:
-		if n.Variable.IsDecl {
-			sym := symbol.Get(n.Id)
-			size := types.Get(sym.Variable.Type).Size
+	case ast.NodeVarDecl:
+		sym := symbol.Get(n.Id)
 
-			sym.Variable.Offset = reserv + size
+		if sym.Tag == symbol.LocVar {
+			size := types.Get(sym.LocVar.Type).Size
+			sym.LocVar.Offset = reserv + size
 			reserv += size
 			symbol.Set(n.Id, sym)
 		}
@@ -430,6 +433,7 @@ func setVarOffsets(n *ast.Node, reserv uint) uint {
 		}
 
 	case ast.NodeInteger:
+	case ast.NodeLocVar:
 	case ast.NodeFunEx:
 	case ast.NodeBoolean:
 	case ast.NodeTypedef:
@@ -453,19 +457,19 @@ func genFunction(n *ast.Node) string {
 
 	for i, param := range n.Function.Params {
 		sym := symbol.Get(param)
-		if sym.Tag != symbol.Variable {
-			panic("symbol tag != variable")
+		if sym.Tag != symbol.LocVar {
+			panic("param != local var")
 		}
 
-		typeNode := types.Get(sym.Variable.Type)
+		typeNode := types.Get(sym.LocVar.Type)
 		size := typeNode.Size
 
-		sym.Variable.Offset = reserv + size
+		sym.LocVar.Offset = reserv + size
 		reserv += size
 		symbol.Set(param, sym)
 
 		code += fmt.Sprintf("	mov	%%%s, -%d(%%rbp)\n",
-			argRegs[size][i], sym.Variable.Offset)
+			argRegs[size][i], sym.LocVar.Offset)
 	}
 	reserv += setVarOffsets(n, 0)
 	reserv += (16 - (reserv % 16)) % 16

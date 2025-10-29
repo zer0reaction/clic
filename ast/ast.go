@@ -27,10 +27,6 @@ type Node struct {
 		Value bool
 	}
 
-	Variable struct {
-		IsDecl bool
-	}
-
 	BinOp struct {
 		Tag      BinOpTag
 		ArithTag BinOpArithTag
@@ -84,7 +80,8 @@ const (
 	NodeInteger
 	NodeBoolean
 	NodeBlock
-	NodeVariable
+	NodeVarDecl
+	NodeLocVar
 	NodeFunEx
 	NodeFunDef
 	NodeFunCall
@@ -164,9 +161,17 @@ func (n *Node) GetTypeShallow() types.Id {
 	case NodeBlock:
 		return types.GetBuiltin(types.Void)
 
-	case NodeVariable:
-		v := symbol.Get(n.Id).Variable
+	case NodeLocVar:
+		v := symbol.Get(n.Id).LocVar
 		return v.Type
+
+	case NodeVarDecl:
+		sym := symbol.Get(n.Id)
+		if sym.Tag == symbol.LocVar {
+			return sym.LocVar.Type
+		} else {
+			panic("not implemented")
+		}
 
 	case NodeFunEx:
 		return types.GetBuiltin(types.Void)

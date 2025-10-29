@@ -50,7 +50,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 		}
 
 		isAssign := (n.BinOp.Tag == ast.BinOpAssign)
-		isStorage := (n.BinOp.Lval.Tag == ast.NodeVariable)
+		isStorage := ((n.BinOp.Lval.Tag == ast.NodeLocVar) || (n.BinOp.Lval.Tag == ast.NodeVarDecl))
 		if isAssign && !isStorage {
 			n.ReportHere(r, report.ReportNonfatal,
 				"lvalue is not a storage location")
@@ -165,11 +165,11 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			panic("not implemented")
 		}
 
-	case ast.NodeVariable:
+	case ast.NodeVarDecl:
 		voidType := types.GetBuiltin(types.Void)
 		varType := n.GetTypeDeep()
 
-		if n.Variable.IsDecl && (varType == voidType) {
+		if varType == voidType {
 			n.ReportHere(r, report.ReportNonfatal,
 				fmt.Sprintf("variable of type %s", voidType.Stringify()))
 		}
@@ -182,6 +182,7 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 
 	// Do nothing
 	case ast.NodeInteger:
+	case ast.NodeLocVar:
 	case ast.NodeBoolean:
 	case ast.NodeFunEx: // TODO: Add check for 'void' params
 	case ast.NodeTypedef: // TODO: Add check for 'void'

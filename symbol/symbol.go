@@ -14,12 +14,12 @@ type tag uint
 
 const (
 	symbolError tag = iota
-	Variable
+	LocVar
 	Function
 	Type
 )
 
-type sVariable struct {
+type sLocVar struct {
 	Type   types.Id
 	Offset uint // subtracted from RBP
 }
@@ -42,7 +42,7 @@ type symbol struct {
 	Tag  tag
 	Name string
 
-	Variable sVariable
+	LocVar   sLocVar
 	Function sFunction
 	Type     sType
 }
@@ -57,6 +57,10 @@ var current = &table{
 	data: make(map[string]Id),
 }
 var storage = make(map[Id]symbol)
+
+func IsScopeGlobal() bool {
+	return (current.prev == nil)
+}
 
 func PushBlock() {
 	current = &table{
