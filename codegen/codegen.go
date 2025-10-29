@@ -471,7 +471,7 @@ func genFunction(n *ast.Node) string {
 		code += fmt.Sprintf("	mov	%%%s, -%d(%%rbp)\n",
 			argRegs[size][i], sym.LocVar.Offset)
 	}
-	reserv += setVarOffsets(n, 0)
+	reserv = setVarOffsets(n, reserv)
 	reserv += (16 - (reserv % 16)) % 16
 	code += fmt.Sprintf("	subq	$%d, %%rsp\n", reserv)
 
