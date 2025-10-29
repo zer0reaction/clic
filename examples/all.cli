@@ -2,19 +2,33 @@
 (exfun print_u64 (n: u64))
 (exfun print_bool (n: bool))
 
-(typedef uint: u64)
+(typedef uint:u64)
 
-(for (auto i 1) (<= i 3) (:= i (+ i 1))
-    (print_s64 (* i 10)))
+(defun print_uint (n:uint)
+    (print_u64 (u64 n))
+)
 
-(let n: uint)
-(:= n (uint 1))
+(defun foo (n:uint)
+    (for (auto i (uint 1)) (<= i n) (:= i (+ i (uint 1)))
+        (print_uint (* i (uint 10)))
+    )
+)
 
-(while (< n (uint 1000))
-    (:= n (* n (uint 2)))
+(defun bar (init:uint limit:uint threshold:uint)
+    (let n: uint)
+    (:= n init)
 
-    (if (> n (uint 200))
-        (print_u64 (u64 n))
-    else
-        (print_s64 (* (s64 n) -1)))
+    (while (< n (uint limit))
+        (:= n (* n (uint 2)))
+
+        (if (> n (uint threshold))
+            (print_u64 (u64 n))
+        else
+            (print_s64 (* (s64 n) -1)))
+    )
+)
+
+(defun main ()
+    (foo (uint 3))
+    (bar (uint 1) (uint 1000) (uint 200))
 )
