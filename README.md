@@ -22,7 +22,7 @@ go run main.go --help
 
 ## Examples
 
-See [/examples](the examples directory).
+See [the examples directory](/examples).
 
 ## Linking with C functions:
 
