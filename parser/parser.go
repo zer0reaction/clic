@@ -166,6 +166,14 @@ func (p *Parser) parseList() *ast.Node {
 
 			funName := p.match(tokenIdent).data
 
+			if symbol.ExistsAnywhere(funName, symbol.Function) {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"function is already declared")
+			} else {
+				id := symbol.AddToBlock(funName, symbol.Function)
+				n.Id = id
+			}
+
 			symbol.PushBlock()
 
 			// Adding parameters as local variables, so they can be
@@ -202,18 +210,9 @@ func (p *Parser) parseList() *ast.Node {
 			}
 			p.match(tokenTag(')'))
 
-			if symbol.ExistsAnywhere(funName, symbol.Function) {
-				n.ReportHere(p.r, report.ReportNonfatal,
-					"function is already declared")
-			} else {
-				id := symbol.AddToBlock(funName, symbol.Function)
-
-				s := symbol.Get(id)
-				s.Function.Params = params
-				symbol.Set(id, s)
-
-				n.Id = id
-			}
+			sym := symbol.Get(n.Id)
+			sym.Function.Params = params
+			symbol.Set(n.Id, sym)
 
 			// n.Function.Type = p.parseType()
 
@@ -279,9 +278,13 @@ func (p *Parser) parseList() *ast.Node {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"type is already declared")
 			} else {
+				size := types.Get(toDef).Size
+				align := types.Get(toDef).Align
 				typeNode := types.TypeNode{
 					Tag:       types.Definition,
 					DefinedAs: toDef,
+					Size:      size,
+					Align:     align,
 				}
 				def := types.Register(typeNode)
 

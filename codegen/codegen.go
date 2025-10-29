@@ -12,12 +12,14 @@ import (
 // Scratch registers:
 // rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11
 
-var argRegisters = [...]string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+const argRegsCount = 6
 
-const varBytesize uint = 8
-
-// This is really bad.
-var stackOffset uint = 0
+var argRegs = [...][argRegsCount]string{
+	1: {"dil", "sil", "dl", "cl", "r8b", "r9b"},
+	2: {"di", "si", "dx", "cx", "r8w", "r9w"},
+	4: {"edi", "esi", "edx", "ecx", "r8d", "r9d"},
+	8: {"rdi", "rsi", "rdx", "rcx", "r8", "r9"},
+}
 
 var externDecls = ""
 
@@ -28,26 +30,14 @@ func Codegen(roots []*ast.Node) string {
 
 	tmp := ""
 	for _, node := range roots {
-		tmp += codegenNode(node)
+		tmp += genNode(node)
 	}
 
 	code += ".section .text\n"
 	code += ".globl main\n"
 	code += externDecls
-	code += "\n"
-	code += "main:\n"
-	code += "	pushq	%rbp\n"
-	code += "	movq	%rsp, %rbp\n"
-
-	code += fmt.Sprintf("	leaq	-%d(%%rbp), %%rsp\n", stackOffset)
-	code += "	/* --------------- */\n"
 	code += tmp
 
-	code += "	/* --------------- */\n"
-	code += "	movq	%rbp, %rsp\n"
-	code += "	movq	$0, %rax\n"
-	code += "	popq	%rbp\n"
-	code += "	ret\n"
 	return code
 }
 
@@ -58,32 +48,24 @@ func Codegen(roots []*ast.Node) string {
 // STACK BASE
 // 4 (rval)
 // 3 (lval)
-func codegenNode(n *ast.Node) string {
+func genNode(n *ast.Node) string {
 	code := ""
 
 	switch n.Tag {
 	case ast.NodeBlock:
 		for _, node := range n.Block.Stmts {
-			code += codegenNode(node)
+			code += genNode(node)
 		}
 
 	case ast.NodeVariable:
-		// TODO: Check the type tag
-
-		s := symbol.Get(n.Id)
-
-		if n.Variable.IsDecl {
-			s.Variable.Offset = stackOffset + varBytesize
-			symbol.Set(n.Id, s)
-			stackOffset += varBytesize
-		} else {
-			code += "	/* Variable */\n"
-			code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", s.Variable.Offset)
+		if !n.Variable.IsDecl {
+			sym := symbol.Get(n.Id)
+			offset := sym.Variable.Offset
+			code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
 			code += "	pushq	%rax\n"
 		}
 
 	case ast.NodeInteger:
-		code += "	/* Integer */\n"
 		if n.Integer.Signed {
 			code += fmt.Sprintf("	pushq	$%d\n", n.Integer.SValue)
 		} else {
@@ -91,22 +73,20 @@ func codegenNode(n *ast.Node) string {
 		}
 
 	case ast.NodeBinOp:
-		code += codegenBinOp(n)
+		code += genBinOp(n)
 
 	case ast.NodeFunEx:
 		name := symbol.Get(n.Id).Name
 		externDecls += fmt.Sprintf(".extern %s\n", name)
 
 	case ast.NodeFunCall:
-		code += "	/* FunCall */\n"
-
-		if len(n.Function.Args) >= len(argRegisters) {
+		if len(n.Function.Args) >= argRegsCount {
 			panic("arguments on stack are not supported yet")
 		}
 
 		for i, node := range n.Function.Args {
-			code += codegenNode(node)
-			code += fmt.Sprintf("	popq	%%%s\n", argRegisters[i])
+			code += genNode(node)
+			code += fmt.Sprintf("	popq	%%%s\n", argRegs[8][i])
 		}
 
 		name := symbol.Get(n.Id).Name
@@ -114,7 +94,6 @@ func codegenNode(n *ast.Node) string {
 		code += "	pushq	%rax\n"
 
 	case ast.NodeBoolean:
-		code += "	/* Boolean */\n"
 		if n.Boolean.Value {
 			code += "	pushq	$1\n"
 		} else {
@@ -122,13 +101,13 @@ func codegenNode(n *ast.Node) string {
 		}
 
 	case ast.NodeIf:
-		code += codegenIf(n)
+		code += genIf(n)
 
 	case ast.NodeWhile:
-		code += codegenWhile(n)
+		code += genWhile(n)
 
 	case ast.NodeFor:
-		code += codegenFor(n)
+		code += genFor(n)
 
 	case ast.NodeCast:
 		// Right now there are only integer types, so we can
@@ -150,7 +129,10 @@ func codegenNode(n *ast.Node) string {
 			panic("not implemented")
 		}
 
-		code += codegenNode(n.Cast.What)
+		code += genNode(n.Cast.What)
+
+	case ast.NodeFunDef:
+		code += genFunction(n)
 
 	// Do nothing
 	case ast.NodeTypedef:
@@ -163,11 +145,11 @@ func codegenNode(n *ast.Node) string {
 	return code
 }
 
-func codegenBinOp(n *ast.Node) string {
+func genBinOp(n *ast.Node) string {
 	code := ""
 
-	lval := codegenNode(n.BinOp.Lval)
-	rval := codegenNode(n.BinOp.Rval)
+	lval := genNode(n.BinOp.Lval)
+	rval := genNode(n.BinOp.Rval)
 
 	switch n.BinOp.Tag {
 	case ast.BinOpAssign:
@@ -175,7 +157,6 @@ func codegenBinOp(n *ast.Node) string {
 		offset := v.Offset
 
 		code += rval
-		code += "	/* BinOpAssign */\n"
 		code += "	popq	%rax\n"
 		code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
 
@@ -184,7 +165,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpSum:
 			code += rval
 			code += lval
-			code += "	/* BinOpSum */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	addq	%rdi, %rax\n"
@@ -193,7 +173,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpSub:
 			code += rval
 			code += lval
-			code += "	/* BinOpSub */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	subq	%rdi, %rax\n"
@@ -202,7 +181,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpMult:
 			code += rval
 			code += lval
-			code += "	/* BinOpMult */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	imulq	%rdi, %rax\n"
@@ -213,7 +191,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpDiv:
 			code += rval
 			code += lval
-			code += "	/* BinOpDiv */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 
@@ -226,7 +203,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpMod:
 			code += rval
 			code += lval
-			code += "	/* BinOpMod */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 
@@ -245,7 +221,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpEq:
 			code += rval
 			code += lval
-			code += "	/* BinOpEq */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -256,7 +231,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpNeq:
 			code += rval
 			code += lval
-			code += "	/* BinOpNeq */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -267,7 +241,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpLessEq:
 			code += rval
 			code += lval
-			code += "	/* BinOpLessEq */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -278,7 +251,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpLess:
 			code += rval
 			code += lval
-			code += "	/* BinOpLess */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -289,7 +261,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpGreatEq:
 			code += rval
 			code += lval
-			code += "	/* BinOpGreatEq */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -300,7 +271,6 @@ func codegenBinOp(n *ast.Node) string {
 		case ast.BinOpGreat:
 			code += rval
 			code += lval
-			code += "	/* BinOpGreat */\n"
 			code += "	popq	%rax\n" // lval
 			code += "	popq	%rdi\n" // rval
 			code += "	xorq	%rsi, %rsi\n"
@@ -319,12 +289,11 @@ func codegenBinOp(n *ast.Node) string {
 	return code
 }
 
-func codegenIf(n *ast.Node) string {
+func genIf(n *ast.Node) string {
 	code := ""
 
-	code += codegenNode(n.If.Exp)
+	code += genNode(n.If.Exp)
 
-	code += "	/* If */\n"
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 
@@ -335,7 +304,7 @@ func codegenIf(n *ast.Node) string {
 	if len(n.If.ElseStmts) == 0 {
 		code += fmt.Sprintf("	je	%s\n", end)
 		for _, stmt := range n.If.IfStmts {
-			code += codegenNode(stmt)
+			code += genNode(stmt)
 		}
 	} else {
 		elseStart := fmt.Sprintf(".L%d", localCount)
@@ -343,12 +312,12 @@ func codegenIf(n *ast.Node) string {
 
 		code += fmt.Sprintf("	je	%s\n", elseStart)
 		for _, stmt := range n.If.IfStmts {
-			code += codegenNode(stmt)
+			code += genNode(stmt)
 		}
 		code += fmt.Sprintf("	jmp	%s\n", end)
 		code += fmt.Sprintf("%s:\n", elseStart)
 		for _, stmt := range n.If.ElseStmts {
-			code += codegenNode(stmt)
+			code += genNode(stmt)
 		}
 	}
 
@@ -357,7 +326,7 @@ func codegenIf(n *ast.Node) string {
 	return code
 }
 
-func codegenWhile(n *ast.Node) string {
+func genWhile(n *ast.Node) string {
 	code := ""
 
 	start := fmt.Sprintf(".L%d", localCount)
@@ -365,15 +334,13 @@ func codegenWhile(n *ast.Node) string {
 	end := fmt.Sprintf(".L%d", localCount)
 	localCount += 1
 
-	code += "	/* While */\n"
-
 	code += fmt.Sprintf("%s:\n", start)
-	code += codegenNode(n.While.Exp)
+	code += genNode(n.While.Exp)
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
 	for _, stmt := range n.While.Stmts {
-		code += codegenNode(stmt)
+		code += genNode(stmt)
 	}
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
@@ -381,7 +348,7 @@ func codegenWhile(n *ast.Node) string {
 	return code
 }
 
-func codegenFor(n *ast.Node) string {
+func genFor(n *ast.Node) string {
 	code := ""
 
 	start := fmt.Sprintf(".L%d", localCount)
@@ -389,20 +356,128 @@ func codegenFor(n *ast.Node) string {
 	end := fmt.Sprintf(".L%d", localCount)
 	localCount += 1
 
-	code += "	/* For */\n"
-
-	code += codegenNode(n.For.Init)
+	code += genNode(n.For.Init)
 	code += fmt.Sprintf("%s:\n", start)
-	code += codegenNode(n.For.Cond)
+	code += genNode(n.For.Cond)
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
 	for _, stmt := range n.For.Stmts {
-		code += codegenNode(stmt)
+		code += genNode(stmt)
 	}
-	code += codegenNode(n.For.Adv)
+	code += genNode(n.For.Adv)
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
+
+	return code
+}
+
+func setVarOffsets(n *ast.Node, reserv uint) uint {
+	switch n.Tag {
+	case ast.NodeBlock:
+		for _, stmt := range n.Block.Stmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+
+	case ast.NodeVariable:
+		if n.Variable.IsDecl {
+			sym := symbol.Get(n.Id)
+			size := types.Get(sym.Variable.Type).Size
+
+			sym.Variable.Offset = reserv + size
+			reserv += size
+			symbol.Set(n.Id, sym)
+		}
+
+	case ast.NodeBinOp:
+		reserv = setVarOffsets(n.BinOp.Lval, reserv)
+		reserv = setVarOffsets(n.BinOp.Rval, reserv)
+
+	case ast.NodeFunCall:
+		for _, arg := range n.Function.Args {
+			reserv = setVarOffsets(arg, reserv)
+		}
+
+	case ast.NodeIf:
+		reserv = setVarOffsets(n.If.Exp, reserv)
+		for _, stmt := range n.If.IfStmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+		for _, stmt := range n.If.ElseStmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+
+	case ast.NodeWhile:
+		reserv = setVarOffsets(n.While.Exp, reserv)
+		for _, stmt := range n.While.Stmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+
+	case ast.NodeFor:
+		reserv = setVarOffsets(n.For.Init, reserv)
+		reserv = setVarOffsets(n.For.Cond, reserv)
+		reserv = setVarOffsets(n.For.Adv, reserv)
+		for _, stmt := range n.For.Stmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+
+	case ast.NodeCast:
+		reserv = setVarOffsets(n.Cast.What, reserv)
+
+	case ast.NodeFunDef:
+		for _, stmt := range n.Function.Stmts {
+			reserv = setVarOffsets(stmt, reserv)
+		}
+
+	case ast.NodeInteger:
+	case ast.NodeFunEx:
+	case ast.NodeBoolean:
+	case ast.NodeTypedef:
+	case ast.NodeEmpty:
+
+	default:
+		panic("not implemented")
+	}
+
+	return reserv
+}
+
+func genFunction(n *ast.Node) string {
+	code := ""
+	reserv := uint(0)
+
+	code += "\n"
+	code += symbol.Get(n.Id).Name + ":\n"
+	code += "	pushq	%rbp\n"
+	code += "	movq	%rsp, %rbp\n"
+
+	for i, param := range n.Function.Params {
+		sym := symbol.Get(param)
+		if sym.Tag != symbol.Variable {
+			panic("symbol tag != variable")
+		}
+
+		typeNode := types.Get(sym.Variable.Type)
+		size := typeNode.Size
+
+		sym.Variable.Offset = reserv + size
+		reserv += size
+		symbol.Set(param, sym)
+
+		code += fmt.Sprintf("	mov	%%%s, -%d(%%rbp)\n",
+			argRegs[size][i], sym.Variable.Offset)
+	}
+	reserv += setVarOffsets(n, 0)
+	reserv += (16 - (reserv % 16)) % 16
+	code += fmt.Sprintf("	subq	$%d, %%rsp\n", reserv)
+
+	for _, stmt := range n.Function.Stmts {
+		code += genNode(stmt)
+	}
+
+	code += "	movq	%rbp, %rsp\n"
+	code += "	popq	%rbp\n"
+	code += "	ret\n"
 
 	return code
 }

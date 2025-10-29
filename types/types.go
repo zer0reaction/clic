@@ -7,7 +7,9 @@ type Id int
 const IdNone Id = -1
 
 type TypeNode struct {
-	Tag   tag
+	Tag tag
+
+	// In bytes
 	Size  uint
 	Align uint
 
