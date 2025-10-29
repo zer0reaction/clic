@@ -9,7 +9,7 @@ CLI is currently a [stack
 machine](https://en.wikipedia.org/wiki/Stack_machine).
 
 The project is in a very early stage of development. Anything can
-change at any time. Do not expect much.
+change at any time. Anything can break. Do not expect much.
 
 The final goal is to create an interesting language with unique
 features and self-host the compiler.
@@ -20,18 +20,14 @@ features and self-host the compiler.
 go run main.go --help
 ```
 
-## Features
+## Examples
 
-### Linking with C funcitons:
+See [/examples](the examples directory).
+
+## Linking with C functions:
 
 ```lisp
-(exfun print_s64 (n: s64))
-
-(let foo: s64)
-(:= foo 1337)
-
-(if (> foo 123)
-  (print_s64 foo))
+(exfun print_s64 (n:s64))
 ```
 
 ```c
@@ -49,35 +45,4 @@ still do something like this:
 
 ```cmd
 go run main.go -bf "-o out extern.c" <file>
-```
-
-### Strong static type system:
-
-The following code will not compile. By default all integers are of
-type `s64`.
-
-```lisp
-(let foo: u64)
-(:= foo 1337)
-```
-
-Casting is done like this:
-
-```lisp
-(let foo: u64)
-(:= foo (u64 1337))
-```
-
-You can also infer the type:
-
-```lisp
-(auto foo: (u64 1337))
-```
-
-You can define custom types. They behave like a new type, not like an
-alias.
-
-```lisp
-(typedef uint: u64)
-(auto foo: (uint 1337))
 ```

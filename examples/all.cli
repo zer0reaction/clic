@@ -1,7 +1,9 @@
+;; These are external C functions
 (exfun print_s64 (n: s64))
 (exfun print_u64 (n: u64))
 (exfun print_bool (n: bool))
 
+;; Custom type (not an alias)
 (typedef uint:u64)
 
 (defun print_uint (n:uint)
@@ -15,7 +17,7 @@
 )
 
 (defun bar (init:uint limit:uint threshold:uint)
-    (let n: uint)
+    (let n:uint)
     (:= n init)
 
     (while (< n (uint limit))
@@ -28,6 +30,7 @@
     )
 )
 
+;; main() is required since we compile with gcc and rely on libc
 (defun main ()
     (foo (uint 3))
     (bar (uint 1) (uint 1000) (uint 200))
