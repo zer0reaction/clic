@@ -132,6 +132,13 @@ func genNode(n *ast.Node) string {
 	case ast.NodeFunDef:
 		code += genFunction(n)
 
+	case ast.NodeReturn:
+		code += genNode(n.Return.Value)
+		code += "	popq	%rax\n"
+		code += "	movq	%rbp, %rsp\n"
+		code += "	popq	%rbp\n"
+		code += "	ret\n"
+
 	// Do nothing
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
@@ -431,6 +438,9 @@ func setVarOffsets(n *ast.Node, reserv uint) uint {
 		for _, stmt := range n.Function.Stmts {
 			reserv = setVarOffsets(stmt, reserv)
 		}
+
+	case ast.NodeReturn:
+		reserv = setVarOffsets(n.Return.Value, reserv)
 
 	case ast.NodeInteger:
 	case ast.NodeLocVar:

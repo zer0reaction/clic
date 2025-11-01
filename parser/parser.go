@@ -9,9 +9,20 @@ import (
 	"strconv"
 )
 
+type parserState uint
+
+const (
+	stateError parserState = iota
+	inGlobal
+	inFunction
+)
+
 type Parser struct {
 	l lexer
 	r *report.Reporter
+
+	state    parserState
+	function symbol.Id
 }
 
 func New(data string, r *report.Reporter) *Parser {
@@ -23,7 +34,8 @@ func New(data string, r *report.Reporter) *Parser {
 			writeInd: 0,
 			readInd:  0,
 		},
-		r: r,
+		r:     r,
+		state: inGlobal,
 	}
 }
 
@@ -153,6 +165,8 @@ func (p *Parser) parseList() *ast.Node {
 			}
 			p.match(tokenTag(')'))
 
+			typ := p.parseType()
+
 			if symbol.ExistsAnywhere(name, symbol.Function) {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
@@ -161,6 +175,7 @@ func (p *Parser) parseList() *ast.Node {
 
 				s := symbol.Get(id)
 				s.Function.Params = params
+				s.Function.Type = typ
 				symbol.Set(id, s)
 
 				n.Id = id
@@ -177,6 +192,8 @@ func (p *Parser) parseList() *ast.Node {
 			} else {
 				id := symbol.AddToBlock(funName, symbol.Function)
 				n.Id = id
+				p.state = inFunction
+				p.function = id
 			}
 
 			symbol.PushBlock()
@@ -185,9 +202,6 @@ func (p *Parser) parseList() *ast.Node {
 			// seen in the block. Keeping their ids so codegen can
 			// assign offsets. Also adding parameters to the symbol
 			// table so they can be seen in a call.
-
-			// TODO: Why are parameters TypedIdent in the symbol
-			// table?
 
 			params := []symbol.TypedIdent{}
 
@@ -215,11 +229,12 @@ func (p *Parser) parseList() *ast.Node {
 			}
 			p.match(tokenTag(')'))
 
+			typ := p.parseType()
+
 			sym := symbol.Get(n.Id)
 			sym.Function.Params = params
+			sym.Function.Type = typ
 			symbol.Set(n.Id, sym)
-
-			// n.Function.Type = p.parseType()
 
 			for p.peek(0).tag == tokenTag('(') {
 				stmt := p.parseList()
@@ -231,6 +246,18 @@ func (p *Parser) parseList() *ast.Node {
 			}
 
 			symbol.PopBlock()
+			p.state = inGlobal
+
+		case "return":
+			n.Tag = ast.NodeReturn
+
+			if p.state != inFunction {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"return found outside function")
+			}
+
+			n.Return.Value = p.parseItem()
+			n.Return.Function = p.function
 
 		case "if":
 			n.Tag = ast.NodeIf

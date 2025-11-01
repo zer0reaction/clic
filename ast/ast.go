@@ -48,6 +48,12 @@ type Node struct {
 		Args []*Node
 	}
 
+	// TODO: This is a dirty hack.
+	Return struct {
+		Function symbol.Id
+		Value    *Node
+	}
+
 	If struct {
 		Exp       *Node
 		IfStmts   []*Node
@@ -85,6 +91,7 @@ const (
 	NodeFunEx
 	NodeFunDef
 	NodeFunCall
+	NodeReturn
 	NodeIf
 	NodeWhile
 	NodeFor
@@ -177,8 +184,11 @@ func (n *Node) GetTypeShallow() types.Id {
 		return types.GetBuiltin(types.Void)
 
 	case NodeFunCall:
-		// TODO: Get return value type
-		return types.GetBuiltin(types.Void)
+		sym := symbol.Get(n.Id)
+		return sym.Function.Type
+
+	case NodeReturn:
+		return n.Return.Value.GetTypeShallow()
 
 	case NodeIf:
 		return types.GetBuiltin(types.Void)

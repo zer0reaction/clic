@@ -26,6 +26,7 @@ type sLocVar struct {
 
 type sFunction struct {
 	Params []TypedIdent
+	Type   types.Id
 }
 
 type sType struct {

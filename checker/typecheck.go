@@ -180,6 +180,19 @@ func checkNode(n *ast.Node, r *report.Reporter) {
 			checkNode(stmt, r)
 		}
 
+	// TODO: Add check for void
+	case ast.NodeReturn:
+		checkNode(n.Return.Value, r)
+
+		funType := symbol.Get(n.Return.Function).Function.Type
+		valType := n.Return.Value.GetTypeShallow()
+
+		if funType != valType {
+			n.Return.Value.ReportHere(r, report.ReportNonfatal,
+				fmt.Sprintf("expected type %s, got %s",
+					funType.Stringify(), valType.Stringify()))
+		}
+
 	// Do nothing
 	case ast.NodeInteger:
 	case ast.NodeLocVar:

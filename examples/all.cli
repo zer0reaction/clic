@@ -1,22 +1,22 @@
 ;; These are external C functions
-(exfun print_s64 (n: s64))
-(exfun print_u64 (n: u64))
-(exfun print_bool (n: bool))
+(exfun print_s64 (n: s64) void)
+(exfun print_u64 (n: u64) void)
+(exfun print_bool (n: bool) void)
 
 ;; Custom type (not an alias)
 (typedef uint:u64)
 
-(defun print_uint (n:uint)
+(defun print_uint (n:uint) void
     (print_u64 (u64 n))
 )
 
-(defun foo (n:uint)
+(defun foo (n:uint) void
     (for (auto i (uint 1)) (<= i n) (:= i (+ i (uint 1)))
         (print_uint (* i (uint 10)))
     )
 )
 
-(defun bar (init:uint limit:uint threshold:uint)
+(defun bar (init:uint limit:uint threshold:uint) void
     (let n:uint)
     (:= n init)
 
@@ -30,8 +30,24 @@
     )
 )
 
+(defun fib (n:s64) s64
+    (if (> n 2)
+        (auto a (fib (- n 1)))
+        (auto b (fib (- n 2)))
+        (return (+ a b))
+    else
+        (return (- n 1))
+    )
+)
+
 ;; main() is required since we compile with gcc and rely on libc
-(defun main ()
+(defun main () s64
     (foo (uint 3))
     (bar (uint 1) (uint 1000) (uint 200))
+
+    (for (auto n 1) (<= n 10) (:= n (+ n 1))
+        (print_s64 (fib n))
+    )
+
+    (return 0)
 )
