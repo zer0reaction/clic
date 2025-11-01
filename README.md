@@ -27,7 +27,7 @@ See [the examples directory](/examples).
 ## Linking with C functions:
 
 ```lisp
-(exfun print_s64 (n:s64))
+(exfun print_s64 (n:s64) void)
 ```
 
 ```c
