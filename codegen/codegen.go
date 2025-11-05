@@ -25,12 +25,12 @@ var externDecls = ""
 
 var localCount = 0
 
-func Codegen(roots []*ast.Node) string {
+func Codegen(roots []*ast.Node, t *symbol.Table) string {
 	code := ""
 
 	tmp := ""
 	for _, node := range roots {
-		tmp += genNode(node)
+		tmp += genNode(node, t)
 	}
 
 	code += ".section .text\n"
@@ -48,71 +48,71 @@ func Codegen(roots []*ast.Node) string {
 // STACK BASE
 // 4 (rval)
 // 3 (lval)
-func genNode(n *ast.Node) string {
+func genNode(n *ast.Node, t *symbol.Table) string {
 	code := ""
 
 	switch n.Tag {
-	case ast.NodeBlock:
-		for _, node := range n.Block.Stmts {
-			code += genNode(node)
+	case ast.NodeScope:
+		for _, node := range n.Scope.Stmts {
+			code += genNode(node, t)
 		}
 
-	case ast.NodeLocVar:
-		sym := symbol.Get(n.Id)
-		offset := sym.LocVar.Offset
+	case ast.NodeLVar:
+		sym := t.Get(n.Id)
+		offset := sym.LVar.Offset
 		code += fmt.Sprintf("	movq	-%d(%%rbp), %%rax\n", offset)
 		code += "	pushq	%rax\n"
 
-	case ast.NodeInteger:
-		if n.Integer.Signed {
-			code += fmt.Sprintf("	pushq	$%d\n", n.Integer.SValue)
+	case ast.NodeInt:
+		if n.Int.Signed {
+			code += fmt.Sprintf("	pushq	$%d\n", n.Int.SValue)
 		} else {
-			code += fmt.Sprintf("	pushq	$%d\n", n.Integer.UValue)
+			code += fmt.Sprintf("	pushq	$%d\n", n.Int.UValue)
 		}
 
 	case ast.NodeBinOp:
-		code += genBinOp(n)
+		code += genBinOp(n, t)
 
 	case ast.NodeFunEx:
-		name := symbol.Get(n.Id).Name
+		name := t.Get(n.Id).Name
 		externDecls += fmt.Sprintf(".extern %s\n", name)
 
 	case ast.NodeFunCall:
-		if len(n.Function.Args) >= argRegsCount {
+		if len(n.Fun.Args) >= argRegsCount {
 			panic("arguments on stack are not supported yet")
 		}
 
-		for i, node := range n.Function.Args {
-			code += genNode(node)
+		for i, node := range n.Fun.Args {
+			code += genNode(node, t)
 			code += fmt.Sprintf("	popq	%%%s\n", argRegs[8][i])
 		}
 
-		name := symbol.Get(n.Id).Name
+		name := t.Get(n.Id).Name
 		code += fmt.Sprintf("	call	%s\n", name)
 		code += "	pushq	%rax\n"
 
-	case ast.NodeBoolean:
-		if n.Boolean.Value {
+	case ast.NodeBool:
+		if n.Bool.Value {
 			code += "	pushq	$1\n"
 		} else {
 			code += "	pushq	$0\n"
 		}
 
 	case ast.NodeIf:
-		code += genIf(n)
+		code += genIf(n, t)
 
 	case ast.NodeWhile:
-		code += genWhile(n)
+		code += genWhile(n, t)
 
 	case ast.NodeFor:
-		code += genFor(n)
+		code += genFor(n, t)
 
 	case ast.NodeCast:
 		// Right now there are only integer types, so we can
 		// simply push the node's value on stack. This code
 		// only checks for new and unsupported types.
 
-		from := n.Cast.What.GetTypeDeep()
+		from := n.Cast.What.GetTypeDeep(t)
 
 		switch from {
 		// Do nothing
@@ -127,13 +127,13 @@ func genNode(n *ast.Node) string {
 			panic("not implemented")
 		}
 
-		code += genNode(n.Cast.What)
+		code += genNode(n.Cast.What, t)
 
 	case ast.NodeFunDef:
-		code += genFunction(n)
+		code += genFunction(n, t)
 
 	case ast.NodeReturn:
-		code += genNode(n.Return.Value)
+		code += genNode(n.Return.Val, t)
 		code += "	popq	%rax\n"
 		code += "	movq	%rbp, %rsp\n"
 		code += "	popq	%rbp\n"
@@ -142,7 +142,7 @@ func genNode(n *ast.Node) string {
 	// Do nothing
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
-	case ast.NodeVarDecl:
+	case ast.NodeLVarDecl:
 
 	default:
 		panic("not implemented")
@@ -151,18 +151,18 @@ func genNode(n *ast.Node) string {
 	return code
 }
 
-func genBinOp(n *ast.Node) string {
+func genBinOp(n *ast.Node, t *symbol.Table) string {
 	code := ""
 
-	lval := genNode(n.BinOp.Lval)
-	rval := genNode(n.BinOp.Rval)
+	lval := genNode(n.BinOp.Lval, t)
+	rval := genNode(n.BinOp.Rval, t)
 
 	switch n.BinOp.Tag {
 	case ast.BinOpAssign:
-		sym := symbol.Get(n.BinOp.Lval.Id)
+		sym := t.Get(n.BinOp.Lval.Id)
 
-		if sym.Tag == symbol.LocVar {
-			offset := sym.LocVar.Offset
+		if sym.Tag == symbol.LVar {
+			offset := sym.LVar.Offset
 			code += rval
 			code += "	popq	%rax\n"
 			code += fmt.Sprintf("	movq	%%rax, -%d(%%rbp)\n", offset)
@@ -299,10 +299,10 @@ func genBinOp(n *ast.Node) string {
 	return code
 }
 
-func genIf(n *ast.Node) string {
+func genIf(n *ast.Node, t *symbol.Table) string {
 	code := ""
 
-	code += genNode(n.If.Exp)
+	code += genNode(n.If.Exp, t)
 
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
@@ -314,7 +314,7 @@ func genIf(n *ast.Node) string {
 	if len(n.If.ElseStmts) == 0 {
 		code += fmt.Sprintf("	je	%s\n", end)
 		for _, stmt := range n.If.IfStmts {
-			code += genNode(stmt)
+			code += genNode(stmt, t)
 		}
 	} else {
 		elseStart := fmt.Sprintf(".L%d", localCount)
@@ -322,12 +322,12 @@ func genIf(n *ast.Node) string {
 
 		code += fmt.Sprintf("	je	%s\n", elseStart)
 		for _, stmt := range n.If.IfStmts {
-			code += genNode(stmt)
+			code += genNode(stmt, t)
 		}
 		code += fmt.Sprintf("	jmp	%s\n", end)
 		code += fmt.Sprintf("%s:\n", elseStart)
 		for _, stmt := range n.If.ElseStmts {
-			code += genNode(stmt)
+			code += genNode(stmt, t)
 		}
 	}
 
@@ -336,7 +336,7 @@ func genIf(n *ast.Node) string {
 	return code
 }
 
-func genWhile(n *ast.Node) string {
+func genWhile(n *ast.Node, t *symbol.Table) string {
 	code := ""
 
 	start := fmt.Sprintf(".L%d", localCount)
@@ -345,12 +345,12 @@ func genWhile(n *ast.Node) string {
 	localCount += 1
 
 	code += fmt.Sprintf("%s:\n", start)
-	code += genNode(n.While.Exp)
+	code += genNode(n.While.Exp, t)
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
 	for _, stmt := range n.While.Stmts {
-		code += genNode(stmt)
+		code += genNode(stmt, t)
 	}
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
@@ -358,7 +358,7 @@ func genWhile(n *ast.Node) string {
 	return code
 }
 
-func genFor(n *ast.Node) string {
+func genFor(n *ast.Node, t *symbol.Table) string {
 	code := ""
 
 	start := fmt.Sprintf(".L%d", localCount)
@@ -366,86 +366,83 @@ func genFor(n *ast.Node) string {
 	end := fmt.Sprintf(".L%d", localCount)
 	localCount += 1
 
-	code += genNode(n.For.Init)
+	code += genNode(n.For.Init, t)
 	code += fmt.Sprintf("%s:\n", start)
-	code += genNode(n.For.Cond)
+	code += genNode(n.For.Cond, t)
 	code += "	popq	%rax\n"
 	code += "	cmpq	$0, %rax\n"
 	code += fmt.Sprintf("	jz	%s\n", end)
 	for _, stmt := range n.For.Stmts {
-		code += genNode(stmt)
+		code += genNode(stmt, t)
 	}
-	code += genNode(n.For.Adv)
+	code += genNode(n.For.Adv, t)
 	code += fmt.Sprintf("	jmp	%s\n", start)
 	code += fmt.Sprintf("%s:\n", end)
 
 	return code
 }
 
-func setVarOffsets(n *ast.Node, reserv uint) uint {
+func setVarOffsets(n *ast.Node, t *symbol.Table, reserv uint) uint {
 	switch n.Tag {
-	case ast.NodeBlock:
-		for _, stmt := range n.Block.Stmts {
-			reserv = setVarOffsets(stmt, reserv)
+	case ast.NodeScope:
+		for _, stmt := range n.Scope.Stmts {
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 
-	case ast.NodeVarDecl:
-		sym := symbol.Get(n.Id)
-
-		if sym.Tag == symbol.LocVar {
-			size := types.Get(sym.LocVar.Type).Size
-			sym.LocVar.Offset = reserv + size
-			reserv += size
-			symbol.Set(n.Id, sym)
-		}
+	case ast.NodeLVarDecl:
+		sym := t.Get(n.Id)
+		size := types.Get(sym.Type).Size
+		sym.LVar.Offset = reserv + size
+		reserv += size
+		t.Set(n.Id, sym)
 
 	case ast.NodeBinOp:
-		reserv = setVarOffsets(n.BinOp.Lval, reserv)
-		reserv = setVarOffsets(n.BinOp.Rval, reserv)
+		reserv = setVarOffsets(n.BinOp.Lval, t, reserv)
+		reserv = setVarOffsets(n.BinOp.Rval, t, reserv)
 
 	case ast.NodeFunCall:
-		for _, arg := range n.Function.Args {
-			reserv = setVarOffsets(arg, reserv)
+		for _, arg := range n.Fun.Args {
+			reserv = setVarOffsets(arg, t, reserv)
 		}
 
 	case ast.NodeIf:
-		reserv = setVarOffsets(n.If.Exp, reserv)
+		reserv = setVarOffsets(n.If.Exp, t, reserv)
 		for _, stmt := range n.If.IfStmts {
-			reserv = setVarOffsets(stmt, reserv)
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 		for _, stmt := range n.If.ElseStmts {
-			reserv = setVarOffsets(stmt, reserv)
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 
 	case ast.NodeWhile:
-		reserv = setVarOffsets(n.While.Exp, reserv)
+		reserv = setVarOffsets(n.While.Exp, t, reserv)
 		for _, stmt := range n.While.Stmts {
-			reserv = setVarOffsets(stmt, reserv)
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 
 	case ast.NodeFor:
-		reserv = setVarOffsets(n.For.Init, reserv)
-		reserv = setVarOffsets(n.For.Cond, reserv)
-		reserv = setVarOffsets(n.For.Adv, reserv)
+		reserv = setVarOffsets(n.For.Init, t, reserv)
+		reserv = setVarOffsets(n.For.Cond, t, reserv)
+		reserv = setVarOffsets(n.For.Adv, t, reserv)
 		for _, stmt := range n.For.Stmts {
-			reserv = setVarOffsets(stmt, reserv)
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 
 	case ast.NodeCast:
-		reserv = setVarOffsets(n.Cast.What, reserv)
+		reserv = setVarOffsets(n.Cast.What, t, reserv)
 
 	case ast.NodeFunDef:
-		for _, stmt := range n.Function.Stmts {
-			reserv = setVarOffsets(stmt, reserv)
+		for _, stmt := range n.Fun.Stmts {
+			reserv = setVarOffsets(stmt, t, reserv)
 		}
 
 	case ast.NodeReturn:
-		reserv = setVarOffsets(n.Return.Value, reserv)
+		reserv = setVarOffsets(n.Return.Val, t, reserv)
 
-	case ast.NodeInteger:
-	case ast.NodeLocVar:
+	case ast.NodeInt:
+	case ast.NodeLVar:
 	case ast.NodeFunEx:
-	case ast.NodeBoolean:
+	case ast.NodeBool:
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
 
@@ -456,37 +453,37 @@ func setVarOffsets(n *ast.Node, reserv uint) uint {
 	return reserv
 }
 
-func genFunction(n *ast.Node) string {
+func genFunction(n *ast.Node, t *symbol.Table) string {
 	code := ""
 	reserv := uint(0)
 
 	code += "\n"
-	code += symbol.Get(n.Id).Name + ":\n"
+	code += t.Get(n.Id).Name + ":\n"
 	code += "	pushq	%rbp\n"
 	code += "	movq	%rsp, %rbp\n"
 
-	for i, param := range n.Function.Params {
-		sym := symbol.Get(param)
-		if sym.Tag != symbol.LocVar {
+	for i, param := range n.Fun.Params {
+		sym := t.Get(param)
+		if sym.Tag != symbol.LVar {
 			panic("param != local var")
 		}
 
-		typeNode := types.Get(sym.LocVar.Type)
+		typeNode := types.Get(sym.Type)
 		size := typeNode.Size
 
-		sym.LocVar.Offset = reserv + size
+		sym.LVar.Offset = reserv + size
 		reserv += size
-		symbol.Set(param, sym)
+		t.Set(param, sym)
 
 		code += fmt.Sprintf("	mov	%%%s, -%d(%%rbp)\n",
-			argRegs[size][i], sym.LocVar.Offset)
+			argRegs[size][i], sym.LVar.Offset)
 	}
-	reserv = setVarOffsets(n, reserv)
+	reserv = setVarOffsets(n, t, reserv)
 	reserv += (16 - (reserv % 16)) % 16
 	code += fmt.Sprintf("	subq	$%d, %%rsp\n", reserv)
 
-	for _, stmt := range n.Function.Stmts {
-		code += genNode(stmt)
+	for _, stmt := range n.Fun.Stmts {
+		code += genNode(stmt, t)
 	}
 
 	code += "	movq	%rbp, %rsp\n"

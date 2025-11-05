@@ -19,13 +19,14 @@ const (
 
 type Parser struct {
 	l lexer
+	t *symbol.Table
 	r *report.Reporter
 
 	state    parserState
 	function symbol.Id
 }
 
-func New(data string, r *report.Reporter) *Parser {
+func New(data string, t *symbol.Table, r *report.Reporter) *Parser {
 	return &Parser{
 		l: lexer{
 			data:     data,
@@ -34,6 +35,7 @@ func New(data string, r *report.Reporter) *Parser {
 			writeInd: 0,
 			readInd:  0,
 		},
+		t:     t,
 		r:     r,
 		state: inGlobal,
 	}
@@ -42,6 +44,7 @@ func New(data string, r *report.Reporter) *Parser {
 func (p *Parser) CreateASTs() []*ast.Node {
 	var roots []*ast.Node
 
+	p.t.PushScope()
 	for {
 		lookahead := p.peek(0)
 		if lookahead.tag == tokenEOF {
@@ -51,6 +54,7 @@ func (p *Parser) CreateASTs() []*ast.Node {
 		node := p.parseList()
 		roots = append(roots, node)
 	}
+	p.t.PopScope()
 
 	return roots
 }
@@ -60,6 +64,7 @@ func (p *Parser) parseList() *ast.Node {
 
 	lookahead := p.peek(0)
 	n := ast.Node{
+		Id:     symbol.IdNone,
 		Line:   lookahead.line,
 		Column: lookahead.column,
 	}
@@ -73,38 +78,37 @@ func (p *Parser) parseList() *ast.Node {
 		// Matched at the end of function
 
 	case tokenTag('('):
-		n.Tag = ast.NodeBlock
+		n.Tag = ast.NodeScope
 
-		symbol.PushBlock()
+		p.t.PushScope()
 
 		for p.peek(0).tag == tokenTag('(') {
-			n.Block.Stmts = append(n.Block.Stmts, p.parseList())
+			n.Scope.Stmts = append(n.Scope.Stmts, p.parseList())
 		}
 
-		symbol.PopBlock()
+		p.t.PopScope()
 
 	case tokenKeyword:
 		switch p.consume().data {
 		case "let":
-			n.Tag = ast.NodeVarDecl
+			n.Tag = ast.NodeLVarDecl
 
-			if symbol.IsScopeGlobal() {
+			if p.state == inGlobal {
 				panic("not implemented")
 			}
 
-			name, type_ := p.parseNameWithType()
+			name, typ := p.parseNameWithType()
 
-			if symbol.ExistsInBlock(name, symbol.LocVar) {
-				n.ReportHere(p.r, report.ReportNonfatal,
-					"variable is already declared")
-			} else {
-				id := symbol.AddToBlock(name, symbol.LocVar)
+			id, added := p.t.Add(name, symbol.LVar)
 
-				s := symbol.Get(id)
-				s.LocVar.Type = type_
-				symbol.Set(id, s)
-
+			if added {
 				n.Id = id
+				sym := p.t.Get(id)
+				sym.Type = typ
+				p.t.Set(id, sym)
+			} else {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"local variable is already declared in the current scope")
 			}
 
 		case "auto":
@@ -112,6 +116,10 @@ func (p *Parser) parseList() *ast.Node {
 			//              n
 			//             / \
 			// new variable   item
+
+			if p.state == inGlobal {
+				panic("not implemented")
+			}
 
 			n.Tag = ast.NodeBinOp
 			n.BinOp.Tag = ast.BinOpAssign
@@ -124,30 +132,26 @@ func (p *Parser) parseList() *ast.Node {
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
-			if symbol.IsScopeGlobal() {
-				panic("not impemented")
-			}
+			id, added := p.t.Add(name, symbol.LVar)
 
-			if symbol.ExistsInBlock(name, symbol.LocVar) {
-				n.ReportHere(p.r, report.ReportNonfatal,
-					"variable is already declared")
-			} else {
+			if added {
 				lval := ast.Node{
-					Tag:    ast.NodeVarDecl,
+					Tag:    ast.NodeLVarDecl,
+					Id:     id,
 					Line:   ident.line,
 					Column: ident.column,
 				}
 
-				// Type is determined in the parser,
-				// so it should be known by now.
-				id := symbol.AddToBlock(name, symbol.LocVar)
+				sym := p.t.Get(id)
+				// Type is determined in the parser, so it should be
+				// known by now.
+				sym.Type = rval.GetTypeShallow(p.t)
+				p.t.Set(id, sym)
 
-				s := symbol.Get(id)
-				s.LocVar.Type = rval.GetTypeShallow()
-				symbol.Set(id, s)
-
-				lval.Id = id
 				n.BinOp.Lval = &lval
+			} else {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"local variable is already declared in the current scope")
 			}
 
 		case "exfun":
@@ -156,7 +160,6 @@ func (p *Parser) parseList() *ast.Node {
 			name := p.match(tokenIdent).data
 
 			params := []symbol.TypedIdent{}
-
 			p.match(tokenTag('('))
 			for p.peek(0).tag != tokenTag(')') {
 				param := symbol.TypedIdent{}
@@ -167,18 +170,17 @@ func (p *Parser) parseList() *ast.Node {
 
 			typ := p.parseType()
 
-			if symbol.ExistsAnywhere(name, symbol.Function) {
+			id, added := p.t.Add(name, symbol.Fun)
+
+			if added {
+				n.Id = id
+				sym := p.t.Get(id)
+				sym.Type = typ
+				sym.Fun.Params = params
+				p.t.Set(id, sym)
+			} else {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
-			} else {
-				id := symbol.AddToBlock(name, symbol.Function)
-
-				s := symbol.Get(id)
-				s.Function.Params = params
-				s.Function.Type = typ
-				symbol.Set(id, s)
-
-				n.Id = id
 			}
 
 		case "defun":
@@ -186,55 +188,57 @@ func (p *Parser) parseList() *ast.Node {
 
 			funName := p.match(tokenIdent).data
 
-			if symbol.ExistsAnywhere(funName, symbol.Function) {
+			funId, funAdded := p.t.Add(funName, symbol.Fun)
+
+			if funAdded {
+				p.state = inFunction
+				p.function = funId
+			} else {
 				n.ReportHere(p.r, report.ReportNonfatal,
 					"function is already declared")
-			} else {
-				id := symbol.AddToBlock(funName, symbol.Function)
-				n.Id = id
-				p.state = inFunction
-				p.function = id
 			}
 
-			symbol.PushBlock()
+			p.t.PushScope()
 
 			// Adding parameters as local variables, so they can be
-			// seen in the block. Keeping their ids so codegen can
+			// seen in the scope. Keeping their ids so codegen can
 			// assign offsets. Also adding parameters to the symbol
 			// table so they can be seen in a call.
 
 			params := []symbol.TypedIdent{}
-
 			p.match(tokenTag('('))
 			for p.peek(0).tag != tokenTag(')') {
-				paramName, type_ := p.parseNameWithType()
+				paramName, paramType := p.parseNameWithType()
 
 				params = append(params, symbol.TypedIdent{
 					Name: paramName,
-					Type: type_,
+					Type: paramType,
 				})
 
-				if symbol.ExistsInBlock(paramName, symbol.LocVar) {
+				paramId, paramAdded := p.t.Add(paramName, symbol.LVar)
+				if paramAdded {
+					sym := p.t.Get(paramId)
+					sym.Type = paramType
+					p.t.Set(paramId, sym)
+
+					n.Fun.Params = append(n.Fun.Params, paramId)
+				} else {
 					n.ReportHere(p.r, report.ReportNonfatal,
 						"duplicate parameter names")
-				} else {
-					id := symbol.AddToBlock(paramName, symbol.LocVar)
-
-					s := symbol.Get(id)
-					s.LocVar.Type = type_
-					symbol.Set(id, s)
-
-					n.Function.Params = append(n.Function.Params, id)
 				}
 			}
 			p.match(tokenTag(')'))
 
-			typ := p.parseType()
+			funType := p.parseType()
 
-			sym := symbol.Get(n.Id)
-			sym.Function.Params = params
-			sym.Function.Type = typ
-			symbol.Set(n.Id, sym)
+			if funAdded {
+				n.Id = funId
+
+				sym := p.t.Get(funId)
+				sym.Type = funType
+				sym.Fun.Params = params
+				p.t.Set(funId, sym)
+			}
 
 			for p.peek(0).tag == tokenTag('(') {
 				stmt := p.parseList()
@@ -242,10 +246,10 @@ func (p *Parser) parseList() *ast.Node {
 					stmt.ReportHere(p.r, report.ReportNonfatal,
 						"nested functions are not allowed")
 				}
-				n.Function.Stmts = append(n.Function.Stmts, stmt)
+				n.Fun.Stmts = append(n.Fun.Stmts, stmt)
 			}
 
-			symbol.PopBlock()
+			p.t.PopScope()
 			p.state = inGlobal
 
 		case "return":
@@ -256,29 +260,29 @@ func (p *Parser) parseList() *ast.Node {
 					"return found outside function")
 			}
 
-			n.Return.Value = p.parseItem()
-			n.Return.Function = p.function
+			n.Return.Val = p.parseItem()
+			n.Return.Fun = p.function
 
 		case "if":
 			n.Tag = ast.NodeIf
 
 			n.If.Exp = p.parseItem()
 
-			symbol.PushBlock()
+			p.t.PushScope()
 			for p.peek(0).tag == tokenTag('(') {
 				n.If.IfStmts = append(n.If.IfStmts, p.parseList())
 			}
-			symbol.PopBlock()
+			p.t.PopScope()
 
 			{
 				t := p.peek(0)
 				if t.tag == tokenKeyword && t.data == "else" {
 					p.match(tokenKeyword)
-					symbol.PushBlock()
+					p.t.PushScope()
 					for p.peek(0).tag == tokenTag('(') {
 						n.If.ElseStmts = append(n.If.ElseStmts, p.parseList())
 					}
-					symbol.PopBlock()
+					p.t.PopScope()
 				}
 			}
 
@@ -291,50 +295,49 @@ func (p *Parser) parseList() *ast.Node {
 
 			n.While.Exp = p.parseItem()
 
-			symbol.PushBlock()
+			p.t.PushScope()
 			for p.peek(0).tag == tokenTag('(') {
 				n.While.Stmts = append(n.While.Stmts, p.parseList())
 			}
-			symbol.PopBlock()
+			p.t.PopScope()
 
 		case "for":
 			n.Tag = ast.NodeFor
 
-			symbol.PushBlock()
+			p.t.PushScope()
 			n.For.Init = p.parseList()
 			n.For.Cond = p.parseItem()
 			n.For.Adv = p.parseList()
 			for p.peek(0).tag == tokenTag('(') {
 				n.For.Stmts = append(n.For.Stmts, p.parseList())
 			}
-			symbol.PopBlock()
+			p.t.PopScope()
 
 		case "typedef":
 			n.Tag = ast.NodeTypedef
 
 			name, toDef := p.parseNameWithType()
 
-			if symbol.ExistsAnywhere(name, symbol.Type) {
-				n.ReportHere(p.r, report.ReportNonfatal,
-					"type is already declared")
-			} else {
-				size := types.Get(toDef).Size
-				align := types.Get(toDef).Align
-				typeNode := types.TypeNode{
+			id, added := p.t.Add(name, symbol.Type)
+
+			if added {
+				n.Id = id
+
+				toDefNode := types.Get(toDef)
+				defNode := types.TypeNode{
 					Tag:       types.Definition,
 					DefinedAs: toDef,
-					Size:      size,
-					Align:     align,
+					Size:      toDefNode.Size,
+					Align:     toDefNode.Align,
 				}
-				def := types.Register(typeNode)
+				def := types.Register(defNode)
 
-				id := symbol.AddToBlock(name, symbol.Type)
-
-				s := symbol.Get(id)
-				s.Type.Id = def
-				symbol.Set(id, s)
-
-				n.Id = id
+				sym := p.t.Get(id)
+				sym.Type = def
+				p.t.Set(id, sym)
+			} else {
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"type is already declared in the current scope")
 			}
 
 		default:
@@ -343,31 +346,31 @@ func (p *Parser) parseList() *ast.Node {
 		}
 
 	case tokenIdent:
-		name := p.peek(0).data
+		name := p.match(tokenIdent).data
+		id, exists := p.t.Resolve(name)
 
-		switch {
-		case symbol.ExistsAnywhere(name, symbol.Type):
-			n.Tag = ast.NodeCast
-			n.Cast.To = p.parseType()
-			n.Cast.What = p.parseItem()
+		if exists {
+			sym := p.t.Get(id)
 
-		case symbol.ExistsAnywhere(name, symbol.Function):
-			p.match(tokenIdent)
-			n.Tag = ast.NodeFunCall
+			switch sym.Tag {
+			case symbol.Type:
+				n.Tag = ast.NodeCast
+				n.Cast.To = sym.Type
+				n.Cast.What = p.parseItem()
 
-			id := symbol.LookupAnywhere(name, symbol.Function)
-			if id == symbol.IdNone {
-				panic("unreachable")
+			case symbol.Fun:
+				n.Tag = ast.NodeFunCall
+				n.Id = id
+				for p.peek(0).tag != tokenTag(')') {
+					n.Fun.Args = append(n.Fun.Args, p.parseItem())
+				}
+
+			default:
+				n.ReportHere(p.r, report.ReportNonfatal,
+					"unexpected identifier")
 			}
-			n.Id = id
-
-			for p.peek(0).tag != tokenTag(')') {
-				n.Function.Args = append(n.Function.Args, p.parseItem())
-			}
-
-		default:
-			n.ReportHere(p.r,
-				report.ReportNonfatal,
+		} else {
+			n.ReportHere(p.r, report.ReportNonfatal,
 				fmt.Sprintf("%s is not declared", name))
 		}
 
@@ -391,17 +394,16 @@ func (p *Parser) parseList() *ast.Node {
 func (p *Parser) parseItem() *ast.Node {
 	lookahead := p.peek(0)
 	n := ast.Node{
+		Id:     symbol.IdNone,
 		Line:   lookahead.line,
 		Column: lookahead.column,
 	}
 
 	switch lookahead.tag {
-	case tokenInteger:
-		t := p.peek(0)
+	case tokenInt:
+		t := p.match(tokenInt)
 
-		p.discard()
-
-		n.Tag = ast.NodeInteger
+		n.Tag = ast.NodeInt
 
 		// TODO: There is currently no way to type u64 literals
 		value, err := strconv.ParseInt(t.data, 0, 64)
@@ -410,33 +412,34 @@ func (p *Parser) parseItem() *ast.Node {
 		}
 
 		// By default all integer literals are s64
-		n.Integer.Size = 64
-		n.Integer.Signed = true
-		n.Integer.SValue = value
+		n.Int.Size = 64
+		n.Int.Signed = true
+		n.Int.SValue = value
 
 	case tokenIdent:
 		t := p.consume()
 
-		n.Tag = ast.NodeLocVar
-
 		// TODO: Add global variables
+		n.Tag = ast.NodeLVar
 
-		id := symbol.LookupAnywhere(t.data, symbol.LocVar)
-		if id == symbol.IdNone {
+		id, exists := p.t.ResolveWithTag(t.data, symbol.LVar)
+
+		if exists {
+			n.Id = id
+		} else {
 			n.ReportHere(p.r, report.ReportNonfatal,
-				"variable does not exist")
+				"local variable does not exist")
 		}
-		n.Id = id
 
 	case tokenKeyword:
 		switch p.consume().data {
 		case "true":
-			n.Tag = ast.NodeBoolean
-			n.Boolean.Value = true
+			n.Tag = ast.NodeBool
+			n.Bool.Value = true
 
 		case "false":
-			n.Tag = ast.NodeBoolean
-			n.Boolean.Value = false
+			n.Tag = ast.NodeBool
+			n.Bool.Value = false
 
 		// TODO: Throw fatal on unrecognized keyword
 		default:
@@ -519,23 +522,22 @@ func (p *Parser) parseType() types.Id {
 		t := p.match(tokenIdent)
 
 		name := t.data
-		symId := symbol.LookupAnywhere(name, symbol.Type)
 
-		typeId := types.IdNone
+		id, exists := p.t.ResolveWithTag(name, symbol.Type)
 
-		if symId == symbol.IdNone {
+		if exists {
+			sym := p.t.Get(id)
+			return sym.Type
+		} else {
 			p.r.Report(report.Form{
 				Tag:    report.ReportNonfatal,
 				Line:   t.line,
 				Column: t.column,
-				Msg:    fmt.Sprintf("type '%s' is not defined", name),
+				Msg:    fmt.Sprintf("type '%s' does not exist in the current scope", name),
 			})
-			// Returning IdNone, scary!
-		} else {
-			typeId = symbol.Get(symId).Type.Id
+			// TODO: Returning IdNone looks scary
+			return types.IdNone
 		}
-
-		return typeId
 	}
 
 	t := p.match(tokenType)

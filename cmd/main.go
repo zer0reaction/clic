@@ -5,6 +5,7 @@ import (
 	"clic/codegen"
 	"clic/parser"
 	"clic/report"
+	"clic/symbol"
 	"flag"
 	"fmt"
 	"os"
@@ -29,17 +30,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	t := &symbol.Table{}
 	r := &report.Reporter{FileName: input}
 
-	p := parser.New(string(data), r)
+	p := parser.New(string(data), t, r)
 
 	roots := p.CreateASTs()
 	r.ExitOnErrors(1)
 
-	checker.TypeCheck(roots, r)
+	checker.TypeCheck(roots, t, r)
 	r.ExitOnErrors(1)
 
-	asm := codegen.Codegen(roots)
+	asm := codegen.Codegen(roots, t)
 	asmPath := "/tmp/cli.s"
 	err = os.WriteFile(asmPath, []byte(asm), 0666)
 	if err != nil {

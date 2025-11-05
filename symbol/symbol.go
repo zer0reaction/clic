@@ -4,180 +4,101 @@ import (
 	"clic/types"
 )
 
-type Id uint
+type Id int32
 
 const (
-	IdNone Id = 0
+	IdNone Id = -1
 )
 
 type tag uint
 
 const (
 	symbolError tag = iota
-	LocVar
-	Function
+	LVar
+	Fun
 	Type
 )
 
-type sLocVar struct {
-	Type   types.Id
-	Offset uint // subtracted from RBP
+type symbol struct {
+	Tag  tag
+	Name string
+	Type types.Id
+
+	LVar struct {
+		Offset uint
+	}
+
+	Fun struct {
+		Params []TypedIdent
+	}
 }
 
-type sFunction struct {
-	Params []TypedIdent
-	Type   types.Id
-}
-
-type sType struct {
-	Id types.Id
-}
-
-// Has 'Name' because it is not stored in the symbol table
 type TypedIdent struct {
 	Name string
 	Type types.Id
 }
 
-type symbol struct {
-	Tag  tag
-	Name string
-
-	LocVar   sLocVar
-	Function sFunction
-	Type     sType
+type Table struct {
+	scopeStack []map[string]Id
+	data       []symbol
 }
 
-type table struct {
-	prev *table
-	data map[string]Id
+func (t *Table) PushScope() {
+	t.scopeStack = append(t.scopeStack, make(map[string]Id))
 }
 
-var current = &table{
-	prev: nil,
-	data: make(map[string]Id),
-}
-var storage = make(map[Id]symbol)
-
-func IsScopeGlobal() bool {
-	return (current.prev == nil)
-}
-
-func PushBlock() {
-	current = &table{
-		prev: current,
-		data: make(map[string]Id),
+func (t *Table) PopScope() {
+	if len(t.scopeStack) == 0 {
+		panic("no scopes to pop")
 	}
+	t.scopeStack = t.scopeStack[:1]
 }
 
-func PopBlock() {
-	if current.prev == nil {
-		panic("popping global block table")
+func (t *Table) Add(name string, tag tag) (Id, bool) {
+	if len(t.scopeStack) == 0 {
+		panic("adding symbol with no scopes")
 	}
-	current = current.prev
-}
 
-func AddToBlock(name string, tag tag) Id {
-	_, ok := current.data[name]
+	_, ok := t.scopeStack[len(t.scopeStack)-1][name]
 	if ok {
-		panic("symbol already exists in the current block")
+		return IdNone, false
 	}
 
-	s := symbol{
+	sym := symbol{
 		Name: name,
 		Tag:  tag,
 	}
-	id := Id(len(storage) + 1)
+	id := Id(len(t.data))
+	t.data = append(t.data, sym)
+	t.scopeStack[len(t.scopeStack)-1][name] = id
 
-	storage[id] = s
-	current.data[name] = id
-
-	return id
+	return id, true
 }
 
-func Get(id Id) symbol {
-	s, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-
-	return s
+func (t *Table) Get(id Id) symbol {
+	return t.data[id]
 }
 
-func Set(id Id, new symbol) {
-	_, ok := storage[id]
-
-	if !ok {
-		panic("symbol doesn't exist")
-	}
-
-	storage[id] = new
+func (t *Table) Set(id Id, sym symbol) {
+	t.data[id] = sym
 }
 
-func ExistsAnywhere(name string, tag tag) bool {
-	ptr := current
-
-	for ptr != nil {
-		id, ok := ptr.data[name]
-		if !ok {
-			ptr = ptr.prev
-			continue
+func (t *Table) Resolve(name string) (Id, bool) {
+	for i := len(t.scopeStack) - 1; i >= 0; i-- {
+		id, ok := t.scopeStack[i][name]
+		if ok {
+			return id, true
 		}
-
-		return (storage[id].Tag == tag)
 	}
-
-	return false
+	return IdNone, false
 }
 
-func ExistsInBlock(name string, tag tag) bool {
-	id, ok := current.data[name]
-
-	if !ok {
-		return false
-	}
-
-	return (storage[id].Tag == tag)
-}
-
-func LookupAnywhere(name string, tag tag) Id {
-	ptr := current
-
-	for ptr != nil {
-		id, ok := ptr.data[name]
-		if !ok {
-			ptr = ptr.prev
-			continue
+func (t *Table) ResolveWithTag(name string, tag tag) (Id, bool) {
+	for i := len(t.scopeStack) - 1; i >= 0; i-- {
+		id, ok := t.scopeStack[i][name]
+		if ok && t.data[id].Tag == tag {
+			return id, true
 		}
-
-		s, ok := storage[id]
-		if !ok {
-			panic("symbol not found")
-		}
-		// TODO: Is this the right thing to do?
-		if s.Tag != tag {
-			return IdNone
-		}
-		return id
 	}
-
-	return IdNone
-}
-
-func LookupInBlock(name string, tag tag) Id {
-	id, ok := current.data[name]
-	if !ok {
-		return IdNone
-	}
-
-	s, ok := storage[id]
-	if !ok {
-		panic("symbol not found")
-	}
-	// TODO: Is this the right thing to do?
-	if s.Tag != tag {
-		return IdNone
-	}
-	return id
+	return IdNone, false
 }

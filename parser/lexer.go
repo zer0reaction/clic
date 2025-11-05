@@ -47,7 +47,7 @@ const (
 	tokenType
 
 	// Other terminals
-	tokenInteger
+	tokenInt
 	tokenIdent
 
 	tokenEOF
@@ -62,7 +62,7 @@ var tokenPatterns = []struct {
 
 	{tokenKeyword, regexp.MustCompile(`^(\blet\b|\bdefun\b|\bexfun\b|\breturn\b|\bif\b|\belse\b|\bwhile\b|\btrue\b|\bfalse\b|\bauto\b|\btypedef\b|\bfor\b)`), true},
 	{tokenType, regexp.MustCompile(`^(\bvoid\b|\bs64\b|\bu64\b|\bbool\b|\bstruct\b)`), true},
-	{tokenInteger, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
+	{tokenInt, regexp.MustCompile(`^(-?[1-9]+[0-9]*|0)`), true},
 	{tokenBinOp, regexp.MustCompile(`^(:=|==|!=|<=|<|>=|>|-|\+|\*|/|%)`), true},
 
 	{tokenTag('('), regexp.MustCompile(`^\(`), false},
@@ -87,7 +87,7 @@ func (tag tokenTag) stringify() string {
 	case tokenType:
 		return "type"
 
-	case tokenInteger:
+	case tokenInt:
 		return "integer literal"
 
 	case tokenIdent:

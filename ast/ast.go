@@ -16,14 +16,14 @@ type Node struct {
 
 	// Union could really help here... Sigh.
 
-	Integer struct {
+	Int struct {
 		SValue int64
 		UValue uint64
 		Signed bool
 		Size   uint8
 	}
 
-	Boolean struct {
+	Bool struct {
 		Value bool
 	}
 
@@ -35,11 +35,11 @@ type Node struct {
 		Rval     *Node
 	}
 
-	Block struct {
+	Scope struct {
 		Stmts []*Node
 	}
 
-	Function struct {
+	Fun struct {
 		// Function definiton
 		Params []symbol.Id
 		Stmts  []*Node
@@ -50,8 +50,8 @@ type Node struct {
 
 	// TODO: This is a dirty hack.
 	Return struct {
-		Function symbol.Id
-		Value    *Node
+		Fun symbol.Id
+		Val *Node
 	}
 
 	If struct {
@@ -83,11 +83,11 @@ type tag uint
 const (
 	nodeError tag = iota
 	NodeBinOp
-	NodeInteger
-	NodeBoolean
-	NodeBlock
-	NodeVarDecl
-	NodeLocVar
+	NodeInt
+	NodeBool
+	NodeScope
+	NodeLVarDecl
+	NodeLVar
 	NodeFunEx
 	NodeFunDef
 	NodeFunCall
@@ -133,15 +133,15 @@ const (
 )
 
 // Does not recurse if type is a defenition
-func (n *Node) GetTypeShallow() types.Id {
+func (n *Node) GetTypeShallow(t *symbol.Table) types.Id {
 	switch n.Tag {
 	case NodeBinOp:
 		switch n.BinOp.Tag {
 		case BinOpAssign:
-			return n.BinOp.Lval.GetTypeShallow()
+			return n.BinOp.Lval.GetTypeShallow(t)
 
 		case BinOpArith:
-			return n.BinOp.Rval.GetTypeShallow()
+			return n.BinOp.Rval.GetTypeShallow(t)
 
 		case BinOpComp:
 			return types.GetBuiltin(types.Bool)
@@ -150,10 +150,10 @@ func (n *Node) GetTypeShallow() types.Id {
 			panic("not implemented")
 		}
 
-	case NodeInteger:
-		switch n.Integer.Size {
+	case NodeInt:
+		switch n.Int.Size {
 		case 64:
-			if n.Integer.Signed {
+			if n.Int.Signed {
 				return types.GetBuiltin(types.S64)
 			} else {
 				return types.GetBuiltin(types.U64)
@@ -162,33 +162,26 @@ func (n *Node) GetTypeShallow() types.Id {
 			panic("not implemented")
 		}
 
-	case NodeBoolean:
+	case NodeBool:
 		return types.GetBuiltin(types.Bool)
 
-	case NodeBlock:
+	case NodeScope:
 		return types.GetBuiltin(types.Void)
 
-	case NodeLocVar:
-		v := symbol.Get(n.Id).LocVar
-		return v.Type
+	case NodeLVar:
+		return t.Get(n.Id).Type
 
-	case NodeVarDecl:
-		sym := symbol.Get(n.Id)
-		if sym.Tag == symbol.LocVar {
-			return sym.LocVar.Type
-		} else {
-			panic("not implemented")
-		}
+	case NodeLVarDecl:
+		return t.Get(n.Id).Type
 
 	case NodeFunEx:
 		return types.GetBuiltin(types.Void)
 
 	case NodeFunCall:
-		sym := symbol.Get(n.Id)
-		return sym.Function.Type
+		return t.Get(n.Id).Type
 
 	case NodeReturn:
-		return n.Return.Value.GetTypeShallow()
+		return n.Return.Val.GetTypeShallow(t)
 
 	case NodeIf:
 		return types.GetBuiltin(types.Void)
@@ -205,8 +198,8 @@ func (n *Node) GetTypeShallow() types.Id {
 }
 
 // If the type is a defenition, recurses to get the actual type
-func (n *Node) GetTypeDeep() types.Id {
-	typeId := n.GetTypeShallow()
+func (n *Node) GetTypeDeep(t *symbol.Table) types.Id {
+	typeId := n.GetTypeShallow(t)
 	{
 		typeNode := types.Get(typeId)
 		for typeNode.Tag == types.Definition {
