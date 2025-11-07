@@ -51,7 +51,7 @@ func (t *Table) PopScope() {
 	if len(t.scopeStack) == 0 {
 		panic("no scopes to pop")
 	}
-	t.scopeStack = t.scopeStack[:1]
+	t.scopeStack = t.scopeStack[:len(t.scopeStack)-1]
 }
 
 func (t *Table) Add(name string, tag tag) (Id, bool) {
