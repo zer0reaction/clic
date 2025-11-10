@@ -89,6 +89,7 @@ const (
 	NodeLVarDecl
 	NodeLVar
 	NodeFunEx
+	NodeFunDecl
 	NodeFunDef
 	NodeFunCall
 	NodeReturn

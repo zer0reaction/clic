@@ -184,19 +184,8 @@ func (p *Parser) parseList() *ast.Node {
 			}
 
 		case "defun":
-			n.Tag = ast.NodeFunDef
-
 			funName := p.match(tokenIdent).data
-
 			funId, funAdded := p.t.Add(funName, symbol.Fun)
-
-			if funAdded {
-				p.state = inFunction
-				p.function = funId
-			} else {
-				n.ReportHere(p.r, report.ReportNonfatal,
-					"function is already declared")
-			}
 
 			p.t.PushScope()
 
@@ -206,6 +195,7 @@ func (p *Parser) parseList() *ast.Node {
 			// table so they can be seen in a call.
 
 			params := []symbol.TypedIdent{}
+
 			p.match(tokenTag('('))
 			for p.peek(0).tag != tokenTag(')') {
 				paramName, paramType := p.parseNameWithType()
@@ -231,26 +221,85 @@ func (p *Parser) parseList() *ast.Node {
 
 			funType := p.parseType()
 
-			if funAdded {
-				n.Id = funId
+			if p.peek(0).tag == tokenTag(')') {
+				// Declaration
+				// * Exists -> Fail
 
-				sym := p.t.Get(funId)
-				sym.Type = funType
-				sym.Fun.Params = params
-				p.t.Set(funId, sym)
-			}
+				n.Tag = ast.NodeFunDecl
 
-			for p.peek(0).tag == tokenTag('(') {
-				stmt := p.parseList()
-				if stmt.Tag == ast.NodeFunDef {
-					stmt.ReportHere(p.r, report.ReportNonfatal,
-						"nested functions are not allowed")
+				if funAdded {
+					n.Id = funId
+
+					sym := p.t.Get(funId)
+					sym.Defined = false
+					sym.Type = funType
+					sym.Fun.Params = params
+					p.t.Set(funId, sym)
+				} else {
+					n.ReportHere(p.r, report.ReportNonfatal,
+						"function is already declared")
 				}
-				n.Fun.Stmts = append(n.Fun.Stmts, stmt)
+			} else {
+				// Definition
+				// * Does not exist -> Add symbol with 'defined'
+				// * Exists, but not defined -> Grab symbol and set 'defined'
+				// * Exists and defined -> Fail
+
+				n.Tag = ast.NodeFunDef
+
+				decl := symbol.IdNone
+
+				if funAdded {
+					// Declaration didn't exist, adding definition
+					decl = funId
+
+					sym := p.t.Get(funId)
+					sym.Defined = true
+					sym.Type = funType
+					sym.Fun.Params = params
+					p.t.Set(funId, sym)
+				} else {
+					// Declaration existed, modifying it
+
+					id, exists := p.t.ResolveWithTag(funName, symbol.Fun)
+					if !exists {
+						panic("unreachable")
+					}
+					decl = id
+
+					sym := p.t.Get(id)
+
+					if sym.Defined {
+						n.ReportHere(p.r, report.ReportNonfatal,
+							"function is already defined")
+					} else {
+						// Checking if signatures match in 'checker'
+						sym.Defined = true
+						p.t.Set(id, sym)
+					}
+				}
+
+				n.Id = decl
+				p.state = inFunction
+				p.function = decl
+
+				for {
+					stmt := p.parseList()
+					if stmt.Tag == ast.NodeFunDef {
+						stmt.ReportHere(p.r, report.ReportNonfatal,
+							"nested functions are not allowed")
+					}
+					n.Fun.Stmts = append(n.Fun.Stmts, stmt)
+
+					if p.peek(0).tag != tokenTag('(') {
+						break
+					}
+				}
+
+				p.state = inGlobal
 			}
 
 			p.t.PopScope()
-			p.state = inGlobal
 
 		case "return":
 			n.Tag = ast.NodeReturn

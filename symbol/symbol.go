@@ -24,6 +24,8 @@ type symbol struct {
 	Name string
 	Type types.Id
 
+	Defined bool // For functions and types
+
 	LVar struct {
 		Offset uint
 	}
@@ -65,8 +67,9 @@ func (t *Table) Add(name string, tag tag) (Id, bool) {
 	}
 
 	sym := symbol{
-		Name: name,
-		Tag:  tag,
+		Name:    name,
+		Tag:     tag,
+		Defined: false,
 	}
 	id := Id(len(t.data))
 	t.data = append(t.data, sym)

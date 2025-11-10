@@ -143,6 +143,7 @@ func genNode(n *ast.Node, t *symbol.Table) string {
 	case ast.NodeTypedef:
 	case ast.NodeEmpty:
 	case ast.NodeLVarDecl:
+	case ast.NodeFunDecl:
 
 	default:
 		panic("not implemented")

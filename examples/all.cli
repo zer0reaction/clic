@@ -6,11 +6,15 @@
 ;; Custom type (not an alias)
 (typedef uint:u64)
 
+;; Forward declaration
+(defun baz () void)
+
 (defun print_uint (n:uint) void
     (print_u64 (u64 n))
 )
 
 (defun foo (n:uint) void
+    (baz)
     (for (auto i (uint 1)) (<= i n) (:= i (+ i (uint 1)))
         (print_uint (* i (uint 10)))
     )
@@ -38,6 +42,10 @@
     else
         (return (- n 1))
     )
+)
+
+(defun baz () void
+    (print_bool true)
 )
 
 ;; main() is required since we compile with gcc and rely on libc
