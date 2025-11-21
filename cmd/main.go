@@ -6,61 +6,42 @@ import (
 	"clic/parser"
 	"clic/report"
 	"clic/symbol"
-	"flag"
 	"fmt"
+	"flag"
 	"os"
-	"os/exec"
-	"strings"
 )
 
 func main() {
-	backend := flag.String("b", "gcc", "Compiler backend")
-	backendFlags := flag.String("bf", "", "Backend flags")
+	outFlag := flag.String("o", "out.s", "Assembly output path")
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
-		fmt.Printf("error: expected one file to compile\n")
+		fmt.Println("Usage: clic [-o outfile] infile")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	input := flag.Args()[0]
 
+	input := flag.Args()[0]
 	data, err := os.ReadFile(input)
 	if err != nil {
-		fmt.Printf("error: failed to open file %s\n", input)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	t := &symbol.Table{}
 	r := &report.Reporter{FileName: input}
-
 	p := parser.New(string(data), t, r)
 
-	roots := p.CreateASTs()
+	asts := p.CreateASTs()
 	r.ExitOnErrors(1)
 
-	checker.TypeCheck(roots, t, r)
+	checker.TypeCheck(asts, t, r)
 	r.ExitOnErrors(1)
 
-	asm := codegen.Codegen(roots, t)
-	asmPath := "/tmp/cli.s"
-	err = os.WriteFile(asmPath, []byte(asm), 0666)
+	asm := codegen.Codegen(asts, t)
+	err = os.WriteFile(*outFlag, []byte(asm), 0666)
 	if err != nil {
-		fmt.Printf("error: failed to write to %s\n", asmPath)
-		os.Exit(1)
-	}
-
-	var cmdFlags []string
-	for _, el := range strings.Split(*backendFlags, " ") {
-		cmdFlags = append(cmdFlags, el)
-	}
-	cmdFlags = append(cmdFlags, asmPath)
-
-	cmd := exec.Command(*backend, cmdFlags...)
-	fmt.Printf("[backend] executing %s\n", cmd)
-
-	backendOutput, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Printf("%s\n", backendOutput)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }

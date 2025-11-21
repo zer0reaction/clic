@@ -66,6 +66,7 @@ func checkNode(n *ast.Node, t *symbol.Table, r *report.Reporter) {
 		if len(n.Fun.Args) != len(fun.Params) {
 			n.ReportHere(r, report.ReportNonfatal,
 				fmt.Sprintf("expected %d arguments, got %d", len(fun.Params), len(n.Fun.Args)))
+			return
 		}
 
 		mismatch := false
