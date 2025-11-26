@@ -39,10 +39,3 @@ void print_s64(int64_t n)
     printf("%ld\n", n);
 }
 ```
-
-Command line flags are kind of scuffed at the moment, but you can
-still do something like this:
-
-```cmd
-go run main.go -bf "-o out extern.c" <file>
-```
