@@ -6,13 +6,14 @@ import (
 	"clic/parser"
 	"clic/report"
 	"clic/symbol"
-	"fmt"
 	"flag"
+	"fmt"
 	"os"
 )
 
 func main() {
 	outFlag := flag.String("o", "out.s", "Assembly output path")
+	dumpFlag := flag.Bool("dump", false, "Dump assembly output to stdout instead of writing it to file")
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
@@ -39,9 +40,14 @@ func main() {
 	r.ExitOnErrors(1)
 
 	asm := codegen.Codegen(asts, t)
-	err = os.WriteFile(*outFlag, []byte(asm), 0666)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+
+	if *dumpFlag {
+		fmt.Print(asm)
+	} else {
+		err = os.WriteFile(*outFlag, []byte(asm), 0666)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 }

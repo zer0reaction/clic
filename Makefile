@@ -6,7 +6,7 @@ uninstall:
 
 test: test.cli
 	@mkdir -p .build
-	clic -o .build/test.s test.cli
+	go run cmd/main.go -o .build/test.s test.cli
 	gcc -o .build/test .build/test.s extern.c
 	.build/test
 
