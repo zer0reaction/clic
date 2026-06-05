@@ -79,6 +79,15 @@ func Get(id Id) TypeNode {
 	return table[id]
 }
 
+func GetDeep(id Id) TypeNode {
+	typeNode := Get(id)
+	for typeNode.Tag == Definition {
+		id = typeNode.DefinedAs
+		typeNode = Get(id)
+	}
+	return table[id]
+}
+
 func GetBuiltin(tag tag) Id {
 	id, ok := builtin[tag]
 	if !ok {

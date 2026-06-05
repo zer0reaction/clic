@@ -127,8 +127,6 @@ func (p *Parser) parseList() *ast.Node {
 			ident := p.match(tokenIdent)
 			name := ident.data
 
-			// TODO: Check if the identifier is not a type
-			// or something
 			rval := p.parseItem()
 			n.BinOp.Rval = rval
 
@@ -390,8 +388,8 @@ func (p *Parser) parseList() *ast.Node {
 			}
 
 		default:
-			// TODO: Throw fatal on unrecognized keyword
-			panic("not implemented")
+			n.ReportHere(p.r, report.ReportFatal,
+				"unrecognized keyword")
 		}
 
 	case tokenIdent:
@@ -490,9 +488,9 @@ func (p *Parser) parseItem() *ast.Node {
 			n.Tag = ast.NodeBool
 			n.Bool.Value = false
 
-		// TODO: Throw fatal on unrecognized keyword
 		default:
-			panic("not implemented")
+			n.ReportHere(p.r, report.ReportFatal,
+				"unrecognized keyword")
 		}
 
 	case tokenTag('('):

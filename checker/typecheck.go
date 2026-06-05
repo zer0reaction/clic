@@ -176,12 +176,10 @@ func checkNode(n *ast.Node, t *symbol.Table, r *report.Reporter) {
 		}
 
 	case ast.NodeFunDef:
-		// TODO: Add check for void return type and signature
 		for _, stmt := range n.Fun.Stmts {
 			checkNode(stmt, t, r)
 		}
 
-	// TODO: Add check for void
 	case ast.NodeReturn:
 		checkNode(n.Return.Val, t, r)
 
@@ -198,9 +196,9 @@ func checkNode(n *ast.Node, t *symbol.Table, r *report.Reporter) {
 	case ast.NodeInt:
 	case ast.NodeLVar:
 	case ast.NodeBool:
-	case ast.NodeFunEx: // TODO: Add check for 'void' params
-	case ast.NodeTypedef: // TODO: Add check for 'void'
-	case ast.NodeFunDecl: // TODO: Add check for 'void' params
+	case ast.NodeFunEx:
+	case ast.NodeTypedef:
+	case ast.NodeFunDecl:
 	case ast.NodeEmpty:
 
 	default:
